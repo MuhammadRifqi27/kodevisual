@@ -14,7 +14,7 @@
             </div>
         </div>
         <div class="app-sidebar-logo-default d-flex align-items-center theme-dark-show">
-            <img alt="Logo" src="{{ asset(config('settings.KT_APP_LOGO', 'assets/media/logos/m-mart.svg')) }}" class="h-40px app-sidebar-logo-default" />
+            <img alt="Logo" src="{{ asset(config('settings.KT_APP_LOGO', 'assets/media/logos/kode_visual_white.svg')) }}" class="h-40px app-sidebar-logo-default" />
             <div class="ms-3 app-sidebar-logo-default">
                 <h1 class="page-heading text-gray-900 fw-semibold fs-1" style="font-family: Rubik; margin-bottom: -6px">
                     {{ config('settings.KT_APP_NAME') }}
@@ -24,7 +24,7 @@
                 </small>
             </div>
         </div>
-        <img alt="Logo" src="{{ asset(config('settings.KT_APP_LOGO', 'assets/media/logos/m-mart.svg')) }}" class="h-30px app-sidebar-logo-minimize" />
+        <img alt="Logo" src="{{ asset(config('settings.KT_APP_LOGO', 'assets/media/logos/kode_visual_white.svg')) }}" class="h-30px app-sidebar-logo-minimize" />
     </a>
     <!--end::Logo image-->
     <!--begin::Sidebar toggle-->

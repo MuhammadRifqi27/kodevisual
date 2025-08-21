@@ -69,4 +69,37 @@ class MasterCategoryController extends Controller
             return response()->json(['status' => 'failed', 'message' => $e->getMessage()], 400);
         }
     }
+    public function edit(MasterCategoryExpenses $masterCategoryExpenses)
+    {
+        return response()->json($masterCategoryExpenses);
+    }
+
+    public function update(Request $request, $masterCategoryExpenses)
+    {
+        try {
+            $validated_data = $request->validate([
+                'name_category' => 'required|string|max:255'
+            ]);
+
+            $isStored = $this->masterCategoryService->masterCategoryStore($validated_data, $masterCategoryExpenses);
+
+            if (!$isStored) {
+                throw new \Exception('Master Category Gagal Diperbarui!');
+            }
+
+            return response()->json(['status' => 'success', 'message' => 'Master Category Berhasil Diperbarui!'], 201);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'failed', 'message' => $e->getMessage()], 400);
+        }
+    }
+
+    public function destroy(MasterCategoryExpenses $masterCategoryExpenses)
+    {
+        $masterCategoryExpenses->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Owner Berhasil Dihapus'
+        ]);
+    }
 }

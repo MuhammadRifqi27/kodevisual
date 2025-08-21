@@ -13,7 +13,7 @@
         <!--begin::Logo-->
         <div class="mb-7">
             <a href="index.html" class="">
-                <img alt="Logo" src="{{ asset('assets/media/logos/m-mart.svg') }}" class="h-40px" />
+                <img alt="Logo" src="{{ asset('assets/media/logos/kode_visual_white.svg') }}" class="h-40px" />
             </a>
         </div>
         <!--end::Logo-->

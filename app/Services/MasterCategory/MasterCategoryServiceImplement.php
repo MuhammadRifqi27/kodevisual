@@ -29,8 +29,8 @@ class MasterCategoryServiceImplement extends Service implements MasterCategorySe
 
       // Jika ada ID, maka proses update
       if ($id) {
-        $master_categort = $this->mainRepository->find($id);
-        if (!$master_categort) {
+        $master_category = $this->mainRepository->find($id);
+        if (!$master_category) {
           throw new \Exception('Data Master Category Tidak Ditemukan!');
         }
 

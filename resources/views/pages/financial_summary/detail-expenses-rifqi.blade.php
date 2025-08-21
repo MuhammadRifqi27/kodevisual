@@ -130,8 +130,26 @@
                         }
                     },
                     {
-                        data: 'created_at',
-                        name: 'created_at',
+                        data: 'created_time',
+                        name: 'created_time',
+                        orderable: true,
+                        searchable: true
+                    },
+                    {
+                        data: 'detail_expenses',
+                        name: 'detail_expenses',
+                        orderable: true,
+                        searchable: true
+                    },
+                    {
+                        data: 'cost',
+                        name: 'cost',
+                        orderable: true,
+                        searchable: true,
+                    },
+                    {
+                        data: 'master_category.name_category',
+                        name: 'master_category.name_category',
                         orderable: true,
                         searchable: true
                     },

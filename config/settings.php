@@ -41,7 +41,7 @@ return [
     # Theme Assets
 
     'KT_THEME_ASSETS' => [
-        'favicon' => 'assets/media/logos/m-mart.ico',
+        'favicon' => 'assets/media/logos/kode_visual_white.svg',
         'logo' => 'assets/media/logos/kodevisual.svg',
         'fonts' => [
             'https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700',
