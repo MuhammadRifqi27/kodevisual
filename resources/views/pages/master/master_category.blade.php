@@ -88,9 +88,9 @@
                     <div class="modal-body py-10 px-4">
                         <div class="mb-10">
                             <label class="form-label required">Nama Kategori Pengeluaran</label>
-                            <input type="text" name="name" class="form-control form-control-solid"
+                            <input type="text" name="name_category" class="form-control form-control-solid"
                                 placeholder="Masukkan Kategori Pengeluaran" required />
-                            <div class="text-danger mt-2 error-name"></div>
+                            <div class="text-danger mt-2 error-name_category"></div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -174,11 +174,12 @@
             // Handle edit button click
             $(document).on('click', '.edit-btn', function() {
                 const id = $(this).data('id');
-                const url = "";
+                const editUrl = "{{ route('category.edit', ':id') }}".replace(':id', id);
+                const updateUrl = "{{ route('category.update', ':id') }}".replace(':id', id);
 
-                $.get(url, function(response) {
-                    $('#editForm').attr('action', "" + id);
-                    $('#editForm input[name="name"]').val(response.name);
+                $.get(editUrl, function(response) {
+                    $('#editForm').attr('action', updateUrl);
+                    $('#editForm input[name="name_category"]').val(response.name_category);
                     $('#editModal').modal('show');
                 });
             });
@@ -186,7 +187,7 @@
             // Handle edit form submission
             $('#editForm').on('submit', function(e) {
                 e.preventDefault();
-                $('.error-name').text('');
+                $('.error-name_category').text('');
 
                 $.ajax({
                     url: $(this).attr('action'),
@@ -208,8 +209,8 @@
                     error: function(xhr) {
                         if (xhr.status === 422) {
                             const errors = xhr.responseJSON.errors;
-                            if (errors.name) {
-                                $('.error-name').text(errors.name[0]);
+                            if (errors.name_category) {
+                                $('.error-name_category').text(errors.name_category[0]);
                             }
                         }
                     }

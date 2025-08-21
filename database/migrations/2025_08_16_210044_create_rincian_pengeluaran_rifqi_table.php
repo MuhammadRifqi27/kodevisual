@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('detail_expenses_rifqi', function (Blueprint $table) {
+        Schema::create('rincian_pengeluaran_rifqi', function (Blueprint $table) {
             $table->id();
+            $table->date('created_time')->nullable();
             $table->string('detail_expenses');
-            $table->decimal('cost', 15, 2)->nullable();
-            $table->unsignedBigInteger('equipment_promosi_id')->nullable()->after('id');
-            $table->foreign('equipment_promosi_id')->references('id')->on('equipment_promosi');
+            $table->integer('cost');
+            $table->unsignedBigInteger('master_category_expenses_id')->nullable();
+            $table->foreign('master_category_expenses_id')->references('id')->on('master_category_expenses');
             $table->timestamps();
         });
     }
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('detail_expenses_rifqi');
+        Schema::dropIfExists('rincian_pengeluaran_rifqi');
     }
 };

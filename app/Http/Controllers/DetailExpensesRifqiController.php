@@ -2,10 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DetailExpensesRifqi;
+use App\Services\DetailExpensesRifqi\DetailExpensesRifqiService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
-class DetailExpensesController extends Controller
+class DetailExpensesRifqiController extends Controller
 {
+
+    protected $detailExpensesRifqiService;
+
+    public function __construct(DetailExpensesRifqiService $detailExpensesRifqiService)
+    {
+        $this->detailExpensesRifqiService = $detailExpensesRifqiService;
+    }
+
     public function index()
     {
         return view('pages.financial_summary.detail-expenses-rifqi');
@@ -18,9 +29,15 @@ class DetailExpensesController extends Controller
 
     public function detailExpensesdatatable()
     {
-        $payment_method = PaymentMethod::query();
+        $detailExpenses = $this->detailExpensesRifqiService->getAllExpenses();
 
-        return datatables()->of($payment_method)
+        return datatables()->of($detailExpenses)
+            ->addColumn('created_time', function ($row) {
+                return format_date($row->created_time);
+            })
+            ->addColumn('cost', function ($row) {
+                return format_rupiah($row->cost);
+            })
             ->addColumn('action', function ($data) {
                 $buttons = '';
 
