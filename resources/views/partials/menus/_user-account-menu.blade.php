@@ -161,7 +161,10 @@
     <!--end::Menu item-->
     <!--begin::Menu item-->
     <div class="menu-item px-5">
-        <a class="button-ajax menu-link px-5" href="#" data-action="{{-- route('logout') --}}" data-method="post" data-csrf="{{ csrf_token() }}" data-reload="true">
+        <form action="{{ route('logout') }}" method="POST" id="logout-form" style="display: none;">
+            @csrf
+        </form>
+        <a class="menu-link px-5" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
             Sign Out
         </a>
     </div>

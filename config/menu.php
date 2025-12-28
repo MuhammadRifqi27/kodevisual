@@ -78,7 +78,16 @@ return [
             'label' => 'Users',
             'type' => 'item',
             'icon' => 'ki',
-            'iconName' => 'user'
+            'iconName' => 'user',
+            'children' => [
+                [
+                    'label' => 'Approval Queue',
+                    'type' => 'item',
+                    'route' => 'admin.user-approval.index',
+                    'icon' => 'ki',
+                    'iconName' => 'check-circle'
+                ]
+            ]
         ],
         [
             'label' => 'Category Expenses',
