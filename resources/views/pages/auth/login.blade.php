@@ -1,5 +1,9 @@
 @extends('layout.auth')
 
+@section('title')
+    Login
+@endsection
+
 @section('auth-content')
     <!--begin::Form-->
     <form class="form w-100" novalidate="novalidate" id="kt_sign_in_form" action="{{ route('login.post') }}" method="POST">
@@ -7,7 +11,7 @@
         <!--begin::Heading-->
         <div class="text-center mb-10">
             <!--begin::Title-->
-            <h1 class="text-dark mb-3">Sign In to Kode Visual Systems</h1>
+            <h1 class="text-dark mb-3">Sign In to Kode Visual's System</h1>
             <!--end::Title-->
             <!--begin::Link-->
             <div class="text-gray-400 fw-bold fs-4">New Here?

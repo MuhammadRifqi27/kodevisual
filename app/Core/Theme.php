@@ -530,7 +530,7 @@ class Theme
                     $master_render .= "<div class='menu-item'><a class='menu-link bg-hover-secondary ";
 
                     if (request()->routeIs($menu_active))
-                        $master_render .= "active";
+                        $master_render .= "active text-active-success";
                     else
                         $master_render .= "";
 
@@ -569,7 +569,7 @@ class Theme
                     }
 
                     $master_render .= "
-                                <span class='menu-title'>" . $menu['label'] . "</span>
+                                <span class='menu-title" . (request()->routeIs($menu_active) ? " text-success" : "") . "'>" . $menu['label'] . "</span>
                             </a>
                         </div>
                     ";

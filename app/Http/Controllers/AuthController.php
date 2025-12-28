@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Auth\AuthService;
+use App\Services\Role\RoleService;
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
@@ -12,7 +13,7 @@ class AuthController extends Controller
 
     public function __construct(
         AuthService $authService,
-        \App\Services\Role\RoleService $roleService
+        RoleService $roleService
     ) {
         $this->authService = $authService;
         $this->roleService = $roleService;
