@@ -21,6 +21,17 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        try {
+            // Fetch all permissions with their roles key
+            $permissions = \App\Models\Permission::all();
+            
+            foreach ($permissions as $permission) {
+                \Illuminate\Support\Facades\Gate::define($permission->name, function ($user) use ($permission) {
+                    return $user->hasPermission($permission->name);
+                });
+            }
+        } catch (\Exception $e) {
+            // Permissions table might not exist yet
+        }
     }
 }

@@ -420,16 +420,19 @@ class Theme
         return $output;
     }
 
-    function permissionExist(array $permission) {
-        $ablities = collect(Gate::abilities())->keys();
-
-        if(!collect($permission)->some(function($ability) use ($ablities) {
-            return collect($ablities)->contains($ability);
-        })){
-            return false;
+    function permissionExist(array $permissions) {
+        if (empty($permissions)) {
+            return true;
+        }
+        
+        // Check if user has ANY of the listed permissions
+        foreach ($permissions as $permission) {
+            if (Gate::check($permission)) {
+                return true;
+            }
         }
 
-        return true;
+        return false;
     }
 
     function renderMenus($menus)
@@ -444,11 +447,7 @@ class Theme
         foreach ($menus as $menu) {
             # Cek Permission
             if(isset($menu['permission']) && count($menu['permission']) > 0 && isset($menu['permissionType'])) {
-                if($menu['permissionType'] == 'laratrust'){
-                    # Cek permission menu dengan laratrust
-                    if(!Laratrust::isAbleTo($menu['permission']))
-                        continue;
-                } else {
+                if($menu['permissionType'] == 'gate'){
                     # Cek permission menu dengan gate
                     if(!self::permissionExist($menu['permission']))
                         continue;

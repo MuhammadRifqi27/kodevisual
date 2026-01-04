@@ -5,6 +5,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DetailExpensesController;
 use App\Http\Controllers\DetailExpensesRifqiController;
 use App\Http\Controllers\MasterCategoryController;
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserApprovalController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,25 +35,54 @@ Route::middleware(['auth', 'approved'])->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     
-    Route::prefix('financial_summary')->name('financial_summary.')->group(function () {
+    Route::middleware(['can:financial_summary'])->prefix('financial_summary')->name('financial_summary.')->group(function () {
         Route::get('/detail-expenses-rifqi', [DetailExpensesRifqiController::class, 'index'])->name('detail.expenses');
         Route::get('/detailExpensesDatatable', [DetailExpensesRifqiController::class, 'detailExpensesdatatable'])->name('detailExpenses.datatable.rifqi');
     });
 
-    Route::prefix('master_category')->name('category.')->group(function () {
-        Route::get('/master-category', [MasterCategoryController::class, 'index'])->name('index');
-        Route::get('/master-category-datatable', [MasterCategoryController::class, 'categoryDatatable'])->name('datatable');
-        Route::post('/store', [MasterCategoryController::class, 'store'])->name('store');
-        Route::get('/{masterCategoryExpenses}/edit', [MasterCategoryController::class, 'edit'])->name('edit');
-        Route::put('/{masterCategoryExpenses}', [MasterCategoryController::class, 'update'])->name('update');
-        Route::delete('/{masterCategoryExpenses}', [MasterCategoryController::class, 'destroy'])->name('destroy');
-    });
-
     // Admin Routes
-    Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/user-approval', [UserApprovalController::class, 'index'])->name('user-approval.index');
-        Route::get('/user-approval/datatable', [UserApprovalController::class, 'datatable'])->name('user-approval.datatable');
-        Route::post('/user-approval/approve/{id}', [UserApprovalController::class, 'approve'])->name('user-approval.approve');
+    Route::middleware(['administrator'])->prefix('administrator')->name('administrator.')->group(function () {
+        
+        Route::middleware(['can:users'])->group(function () {
+            Route::get('/user-approval', [UserApprovalController::class, 'index'])->name('user-approval.index');
+            Route::get('/user-approval/datatable', [UserApprovalController::class, 'datatable'])->name('user-approval.datatable');
+            Route::post('/user-approval/approve/{id}', [UserApprovalController::class, 'approve'])->name('user-approval.approve');
+            
+            // User List Routes
+            Route::get('/user-list', [UserApprovalController::class, 'listing'])->name('user-approval.listing');
+            Route::get('/user-list/datatable', [UserApprovalController::class, 'listingDatatable'])->name('user-approval.listing.datatable');
+            Route::delete('/user-approval/destroy/{id}', [UserApprovalController::class, 'destroy'])->name('user-approval.destroy');
+        });
+
+        // Permission Management
+        Route::middleware(['can:permissions'])->controller(PermissionController::class)->prefix('permissions')->name('permissions.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/datatable', 'datatable')->name('datatable');
+            Route::post('/store', 'store')->name('store');
+            Route::get('/edit/{id}', 'edit')->name('edit');
+            Route::put('/update/{id}', 'update')->name('update');
+            Route::delete('/destroy/{id}', 'destroy')->name('destroy');
+        });
+
+        // Role Management
+        Route::middleware(['can:roles'])->controller(RoleController::class)->prefix('roles')->name('roles.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/datatable', 'datatable')->name('datatable');
+            Route::post('/store', 'store')->name('store');
+            Route::get('/edit/{id}', 'edit')->name('edit');
+            Route::put('/update/{id}', 'update')->name('update');
+            Route::delete('/destroy/{id}', 'destroy')->name('destroy');
+        });
+
+        // Master Data Routes
+        Route::middleware(['can:master_category'])->prefix('master_category')->name('category.')->group(function () {
+            Route::get('/master-category', [MasterCategoryController::class, 'index'])->name('index');
+            Route::get('/master-category-datatable', [MasterCategoryController::class, 'categoryDatatable'])->name('datatable');
+            Route::post('/store', [MasterCategoryController::class, 'store'])->name('store');
+            Route::get('/{masterCategoryExpenses}/edit', [MasterCategoryController::class, 'edit'])->name('edit');
+            Route::put('/{masterCategoryExpenses}', [MasterCategoryController::class, 'update'])->name('update');
+            Route::delete('/{masterCategoryExpenses}', [MasterCategoryController::class, 'destroy'])->name('destroy');
+        });
     });
 
     Route::get('/dashboard', function () {

@@ -26,12 +26,16 @@ return [
             'active' => ['dashboard'],
             'icon' => 'ki',
             'iconName' => 'folder-down',
+            'permission' => ['financial_summary'],
+            'permissionType' => 'gate',
             'children' => [
                 [
                     'label' => 'Keuangan Rifqi',
                     'type' => 'item',
                     'icon' => 'ki',
                     'iconName' => 'dollar',
+                    'permission' => ['view_financial_rifqi'],
+                    'permissionType' => 'gate',
                     'children' => [
                         [
                             'label' => 'Rekap Bulanan',
@@ -53,6 +57,8 @@ return [
                     'type' => 'item',
                     'icon' => 'ki',
                     'iconName' => 'dollar',
+                    'permission' => ['view_financial_rannu'],
+                    'permissionType' => 'gate',
                     'children' => [
                         [
                             'label' => 'Rekap Bulanan',
@@ -72,29 +78,67 @@ return [
         ],
         [
             'label' => 'Master Data',
-            'type' => 'heading'
+            'type' => 'heading',
+            'permission' => ['master_data']
         ],
         [
-            'label' => 'Users',
+            'label' => 'Management',
             'type' => 'item',
             'icon' => 'ki',
-            'iconName' => 'user',
+            'iconName' => 'shield-tick',
             'children' => [
                 [
-                    'label' => 'Approval Queue',
+                    'label' => 'User Management',
                     'type' => 'item',
-                    'route' => 'admin.user-approval.index',
                     'icon' => 'ki',
-                    'iconName' => 'check-circle'
+                    'iconName' => 'user',
+                    'permission' => ['users'],
+                    'permissionType' => 'gate',
+                    'children' => [
+                         [
+                            'label' => 'User Approval',
+                            'type' => 'item',
+                            'route' => 'administrator.user-approval.index',
+                            'icon' => 'ki',
+                            'iconName' => 'check-circle',
+                        ],
+                        [
+                            'label' => 'Users List',
+                            'type' => 'item',
+                            'route' => 'administrator.user-approval.listing',
+                            'icon' => 'ki',
+                            'iconName' => 'people',
+                        ]
+                    ]
+                ],
+                [
+                    'label' => 'Role Management',
+                    'type' => 'item',
+                    'route' => 'administrator.roles.index',
+                    'icon' => 'ki',
+                    'iconName' => 'profile-circle',
+                    'permission' => ['roles'],
+                    'permissionType' => 'gate',
+                ],
+                [
+                    'label' => 'Permission Management',
+                    'type' => 'item',
+                    'route' => 'administrator.permissions.index',
+                    'icon' => 'ki',
+                    'iconName' => 'key',
+                    'permission' => ['permissions'],
+                    'permissionType' => 'gate',
                 ]
             ]
         ],
         [
             'label' => 'Category Expenses',
             'type' => 'item',
-            'route' => 'category.index',
+            'route' => 'administrator.category.index',
             'icon' => 'ki',
-            'iconName' => 'category'
+            'iconName' => 'category',
+            'permission' => ['master_categorys'],
+            'permissionType' => 'gate',
         ]
 
         // [

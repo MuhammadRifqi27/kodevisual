@@ -24,13 +24,40 @@ class UserApprovalController extends Controller
             })
             ->addColumn('action', function($row){
                 $btn = '<button data-id="'.$row->id.'" class="btn btn-success btn-sm approve-btn">Approve</button>';
-                // $btn .= ' <button data-id="'.$row->id.'" class="btn btn-danger btn-sm reject-btn">Reject</button>';
                 return $btn;
             })
             ->editColumn('created_at', function($row){
                 return $row->created_at->format('Y-m-d H:i:s');
             })
             ->rawColumns(['action'])
+            ->make(true);
+    }
+
+    public function listing()
+    {
+        return view('pages.admin.user_list');
+    }
+
+    public function listingDatatable()
+    {
+        $users = User::with('role')->get();
+        return Datatables::of($users)
+            ->addIndexColumn()
+            ->addColumn('role_name', function($row){
+                return $row->role ? ucfirst($row->role->name) : '-';
+            })
+            ->addColumn('status', function($row){
+                return $row->is_approved ? '<span class="badge badge-success">Approved</span>' : '<span class="badge badge-warning">Pending</span>';
+            })
+            ->addColumn('action', function($row){
+                $btn = '<a href="javascript:void(0)" data-id="'.$row->id.'" class="btn btn-primary btn-sm edit-btn">Edit</a>';
+                 $btn .= ' <a href="javascript:void(0)" data-id="'.$row->id.'" class="btn btn-danger btn-sm delete-btn">Delete</a>';
+                return $btn;
+            })
+            ->editColumn('created_at', function($row){
+                return $row->created_at->format('Y-m-d H:i:s');
+            })
+            ->rawColumns(['status', 'action'])
             ->make(true);
     }
 
@@ -45,5 +72,11 @@ class UserApprovalController extends Controller
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => 'Failed to approve user.']);
         }
+    }
+    
+    public function destroy($id)
+    {
+        User::find($id)->delete();
+        return response()->json(['success' => 'User deleted successfully.']);
     }
 }
