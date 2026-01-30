@@ -16,64 +16,80 @@ return [
             'iconName' => 'home',
         ],
         [
-            'label' => 'Rekap Keuangan',
-            'type' => 'heading'
+            'label' => 'Money Management System',
+            'type' => 'heading',
+            'permission' => ['money-management'],
         ],
         [
-            'label' => 'Rekap Keuangan',
+            'label' => 'Dashboard',
             'type' => 'item',
-            'route' => 'dashboard',
-            'active' => ['dashboard'],
-            'icon' => 'ki',
-            'iconName' => 'folder-down',
-            'permission' => ['financial_summary'],
+            'route' => 'money-management.dashboard',
+            'active' => ['money-management.dashboard'],
+            'permission' => ['money-management'],
             'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'home'
+        ],
+        [
+            'label' => 'Transactions',
+            'type' => 'item',
+            'route' => 'money-management.transactions.index',
+            'active' => ['money-management.transactions.index'],
+            'permission' => ['money-management'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'dollar'
+        ],
+        [
+            'label' => 'Portfolio / Savings',
+            'type' => 'item',
+            'route' => 'money-management.portfolio.index',
+            'active' => ['money-management.portfolio.index', 'money-management.portfolio.show'],
+            'permission' => ['money-management'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'wallet'
+        ],
+        [
+            'label' => 'Master Data',
+            'type' => 'item',
+            'route' => 'money-management.master-data',
+            'active' => ['money-management.master-data'],
+            'permission' => ['money-management'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'setting',
             'children' => [
                 [
-                    'label' => 'Keuangan Rifqi',
+                    'label' => 'Category Expenses',
                     'type' => 'item',
-                    'icon' => 'ki',
-                    'iconName' => 'dollar',
-                    'permission' => ['view_financial_rifqi'],
+                    'route' => 'money-management.master-data.expenses.index',
+                    'active' => ['money-management.master-data.expenses.index'],
+                    'permission' => ['money-management'],
                     'permissionType' => 'gate',
-                    'children' => [
-                        [
-                            'label' => 'Rekap Bulanan',
-                            'type' => 'item',
-                            'icon' => 'ki',
-                            'iconName' => 'questionnaire-tablet',
-                        ],
-                        [
-                            'label' => 'Rincian Pengeluaran',
-                            'type' => 'item',
-                            'route' => 'financial_summary.detail.expenses',
-                            'icon' => 'ki',
-                            'iconName' => 'notepad-edit',
-                        ]
-                    ]
+                    'icon' => 'ki',
+                    'iconName' => 'minus-square',
                 ],
                 [
-                    'label' => 'Keuangan Rannu',
+                    'label' => 'Category Income',
                     'type' => 'item',
-                    'icon' => 'ki',
-                    'iconName' => 'dollar',
-                    'permission' => ['view_financial_rannu'],
+                    'route' => 'money-management.master-data.income.index',
+                    'active' => ['money-management.master-data.income.index'],
+                    'permission' => ['money-management'],
                     'permissionType' => 'gate',
-                    'children' => [
-                        [
-                            'label' => 'Rekap Bulanan',
-                            'type' => 'item',
-                            'icon' => 'ki',
-                            'iconName' => 'questionnaire-tablet',
-                        ],
-                        [
-                            'label' => 'Rincian Pengeluaran',
-                            'type' => 'item',
-                            'icon' => 'ki',
-                            'iconName' => 'notepad-edit',
-                        ]
-                    ]
+                    'icon' => 'ki',
+                    'iconName' => 'plus-square',
                 ],
+                [
+                    'label' => 'Investment',
+                    'type' => 'item',
+                    'route' => 'money-management.master-data.investments.index',
+                    'active' => ['money-management.master-data.investments.index'],
+                    'permission' => ['money-management'],
+                    'permissionType' => 'gate',
+                    'icon' => 'ki',
+                    'iconName' => 'chart-line-up',
+                ]
             ]
         ],
         [
@@ -85,7 +101,7 @@ return [
             'label' => 'Management',
             'type' => 'item',
             'icon' => 'ki',
-            'iconName' => 'shield-tick',
+            'iconName' => 'setting',
             'children' => [
                 [
                     'label' => 'User Management',

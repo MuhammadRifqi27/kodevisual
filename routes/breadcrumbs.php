@@ -7,8 +7,56 @@ use Diglactic\Breadcrumbs\Generator as BreadcrumbTrail;
 Breadcrumbs::for('dashboard', function (BreadcrumbTrail $trail) {
     $trail->push('Dashboard', route('example.dashboard.default'));
 });
+// Detail Expenses Rifqi
 Breadcrumbs::for('detail-expenses-rifqi', function (BreadcrumbTrail $trail) {
     $trail->push('Detail Expenses Rifqi', route('financial_summary.detail.expenses'));
+});
+
+// Money Management
+Breadcrumbs::for('money-management', function (BreadcrumbTrail $trail) {
+    $trail->push('Money Management', '#');
+});
+
+// Money Management > Transactions
+Breadcrumbs::for('money-management.transactions', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Transactions', route('money-management.transactions.index'));
+});
+
+// Money Management > Portfolio
+Breadcrumbs::for('money-management.portfolio', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Portfolio & Savings', route('money-management.portfolio.index'));
+});
+
+// Money Management > Portfolio > Details
+Breadcrumbs::for('money-management.portfolio.show', function (BreadcrumbTrail $trail, $id) {
+    $trail->parent('money-management.portfolio');
+    $trail->push('Details', route('money-management.portfolio.show', $id));
+});
+
+// Money Management > Master Data
+Breadcrumbs::for('money-management.master-data', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Master Data', '#');
+});
+
+// Money Management > Master Data > Expenses
+Breadcrumbs::for('money-management.master-data.expenses', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management.master-data');
+    $trail->push('Category Expenses', route('money-management.master-data.expenses.index'));
+});
+
+// Money Management > Master Data > Income
+Breadcrumbs::for('money-management.master-data.income', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management.master-data');
+    $trail->push('Category Income', route('money-management.master-data.income.index'));
+});
+
+// Money Management > Master Data > Investments
+Breadcrumbs::for('money-management.master-data.investments', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management.master-data');
+    $trail->push('Investments', route('money-management.master-data.investments.index'));
 });
 // Dashboard > Default
 Breadcrumbs::for('dashboard.default', function (BreadcrumbTrail $trail) {

@@ -5,6 +5,10 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DetailExpensesController;
 use App\Http\Controllers\DetailExpensesRifqiController;
 use App\Http\Controllers\MasterCategoryController;
+use App\Http\Controllers\MoneyManagement\MasterDataController;
+use App\Http\Controllers\MoneyManagement\MoneyManagementDashboardController;
+use App\Http\Controllers\MoneyManagement\PortfolioController;
+use App\Http\Controllers\MoneyManagement\TransactionController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserApprovalController;
@@ -38,6 +42,59 @@ Route::middleware(['auth', 'approved'])->group(function () {
     Route::middleware(['can:financial_summary'])->prefix('financial_summary')->name('financial_summary.')->group(function () {
         Route::get('/detail-expenses-rifqi', [DetailExpensesRifqiController::class, 'index'])->name('detail.expenses');
         Route::get('/detailExpensesDatatable', [DetailExpensesRifqiController::class, 'detailExpensesdatatable'])->name('detailExpenses.datatable.rifqi');
+    });
+    
+
+    Route::middleware(['can:money-management'])->group(function () {
+        Route::prefix('money-management')->name('money-management.')->group(function () {
+            Route::get('/dashboard', [MoneyManagementDashboardController::class, 'index'])->name('dashboard');
+
+            // Transactions
+            Route::prefix('transactions')->name('transactions.')->group(function() {
+                Route::get('/', [TransactionController::class, 'index'])->name('index');
+                Route::get('/datatable', [TransactionController::class, 'datatable'])->name('datatable');
+                Route::get('/categories', [TransactionController::class, 'getCategories'])->name('get-categories');
+                Route::post('/', [TransactionController::class, 'store'])->name('store');
+                Route::put('/{id}', [TransactionController::class, 'update'])->name('update');
+                Route::delete('/{id}', [TransactionController::class, 'destroy'])->name('destroy');
+            });
+
+            // Portfolio / Savings
+            Route::prefix('portfolio')->name('portfolio.')->group(function() {
+                Route::get('/', [PortfolioController::class, 'index'])->name('index');
+                Route::get('/datatable', [PortfolioController::class, 'datatable'])->name('datatable');
+                Route::get('/{id}', [PortfolioController::class, 'show'])->name('show');
+                
+                // Transactions internal to Portfolio
+                Route::get('/{id}/transactions-datatable', [PortfolioController::class, 'transactionDatatable'])->name('transactions.datatable');
+                Route::post('/transactions', [PortfolioController::class, 'storeTransaction'])->name('transactions.store');
+                Route::put('/transactions/{id}', [PortfolioController::class, 'updateTransaction'])->name('transactions.update');
+                Route::delete('/transactions/{id}', [PortfolioController::class, 'destroyTransaction'])->name('transactions.destroy');
+            });
+            
+            // Master Data Routes
+            Route::prefix('master-data')->name('master-data.')->group(function() {
+                // Category Expenses
+                Route::get('/expenses', [MasterDataController::class, 'expensesIndex'])->name('expenses.index');
+                Route::get('/expenses/datatable', [MasterDataController::class, 'expensesDatatable'])->name('expenses.datatable');
+                
+                // Category Income
+                Route::get('/income', [MasterDataController::class, 'incomeIndex'])->name('income.index');
+                Route::get('/income/datatable', [MasterDataController::class, 'incomeDatatable'])->name('income.datatable');
+
+                // Shared Store/Update/Destroy for Categories (bisa dipakai ulang atau dipisah jika perlu validasi beda)
+                Route::post('/categories', [MasterDataController::class, 'storeCategory'])->name('categories.store');
+                Route::put('/categories/{id}', [MasterDataController::class, 'updateCategory'])->name('categories.update');
+                Route::delete('/categories/{id}', [MasterDataController::class, 'destroyCategory'])->name('categories.destroy');
+
+                // Investments
+                Route::get('/investments', [MasterDataController::class, 'investmentsIndex'])->name('investments.index');
+                Route::get('/investments/datatable', [MasterDataController::class, 'investmentsDatatable'])->name('investments.datatable');
+                Route::post('/investments', [MasterDataController::class, 'storeInvestment'])->name('investments.store');
+                Route::put('/investments/{id}', [MasterDataController::class, 'updateInvestment'])->name('investments.update');
+                Route::delete('/investments/{id}', [MasterDataController::class, 'destroyInvestment'])->name('investments.destroy');
+            });
+        });
     });
 
     // Admin Routes

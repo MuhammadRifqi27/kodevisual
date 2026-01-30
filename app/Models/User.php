@@ -39,6 +39,16 @@ class User extends Authenticatable
         return $this->role->permissions->contains('name', $permissionName);
     }
 
+    public function financeTransactions()
+    {
+        return $this->hasMany(FinanceTransaction::class);
+    }
+
+    public function investmentTransactions()
+    {
+        return $this->hasMany(FinanceInvestmentTransaction::class);
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *
