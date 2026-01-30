@@ -4,21 +4,37 @@
     <div class="menu-item px-3">
         <div class="menu-content d-flex align-items-center px-3">
             <!--begin::Avatar-->
+
             <div class="symbol symbol-50px me-5">
-                <div class="symbol-label fs-3 {{ app(\App\Actions\GetThemeType::class)->handle('bg-light-? text-?', "Administrator") }}">
-                    A
+
+                <div class="symbol-label fs-3 {{ app(\App\Actions\GetThemeType::class)->handle('bg-light-? text-?', 'Administrator') }}">
+
+                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) ?? 'A' }}
+
                 </div>
+
             </div>
+
             <!--end::Avatar-->
+
             <!--begin::Username-->
+
             <div class="d-flex flex-column">
-                <div class="fw-bold d-flex align-items-center fs-5">Administrator
-                    <span class="badge badge-light-primary fw-bold fs-8 px-2 py-1 ms-2">Pro</span>
+
+                <div class="fw-bold d-flex align-items-center fs-5">
+
+                    {{ auth()->user()->name ?? 'User' }}
+
                 </div>
-                <a href="#" class="fw-semibold text-muted text-hover-primary fs-7">
-                    it6.mm@rcoid.com
-                </a>
+
+                <div class="fw-semibold text-muted text-hover-primary fs-7">
+
+                    {{ auth()->user()->email ?? 'user@email.com' }}
+
+                </div>
+
             </div>
+
             <!--end::Username-->
         </div>
     </div>
@@ -39,52 +55,6 @@
                 <span class="badge badge-light-danger badge-circle fw-bold fs-7">3</span>
             </span>
         </a>
-    </div>
-    <!--end::Menu item-->
-    <!--begin::Menu item-->
-    <div class="menu-item px-5" data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="left-start" data-kt-menu-offset="-15px, 0">
-        <a href="#" class="menu-link px-5">
-            <span class="menu-title">My Subscription</span>
-            <span class="menu-arrow"></span>
-        </a>
-        <!--begin::Menu sub-->
-        <div class="menu-sub menu-sub-dropdown w-175px py-4">
-            <!--begin::Menu item-->
-            <div class="menu-item px-3">
-                <a href="#" class="menu-link px-5">Referrals</a>
-            </div>
-            <!--end::Menu item-->
-            <!--begin::Menu item-->
-            <div class="menu-item px-3">
-                <a href="#" class="menu-link px-5">Billing</a>
-            </div>
-            <!--end::Menu item-->
-            <!--begin::Menu item-->
-            <div class="menu-item px-3">
-                <a href="#" class="menu-link px-5">Payments</a>
-            </div>
-            <!--end::Menu item-->
-            <!--begin::Menu item-->
-            <div class="menu-item px-3">
-                <a href="#" class="menu-link d-flex flex-stack px-5">Statements
-                    <span class="ms-2 lh-0" data-bs-toggle="tooltip" title="View your statements">{!! getIcon('information-5', 'fs-5') !!}</span></a>
-            </div>
-            <!--end::Menu item-->
-            <!--begin::Menu separator-->
-            <div class="separator my-2"></div>
-            <!--end::Menu separator-->
-            <!--begin::Menu item-->
-            <div class="menu-item px-3">
-                <div class="menu-content px-3">
-                    <label class="form-check form-switch form-check-custom form-check-solid">
-						<input class="form-check-input w-30px h-20px" type="checkbox" value="1" checked="checked" name="notifications" />
-                        <span class="form-check-label text-muted fs-7">Notifications</span>
-                    </label>
-                </div>
-            </div>
-            <!--end::Menu item-->
-        </div>
-        <!--end::Menu sub-->
     </div>
     <!--end::Menu item-->
     <!--begin::Menu item-->
