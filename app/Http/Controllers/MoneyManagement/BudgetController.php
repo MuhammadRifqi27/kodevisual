@@ -6,35 +6,72 @@ use App\Http\Controllers\Controller;
 use App\Models\FinanceBudget;
 use App\Models\FinanceCategory;
 use App\Models\FinanceTransaction;
+use App\Models\FinanceSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class BudgetController extends Controller
 {
     public function index(Request $request)
     {
+        $userId = auth()->id();
         $month = $request->get('month', date('n'));
         $year = $request->get('year', date('Y'));
 
+        $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+
+        // Fetch payroll start day from settings (default to 25)
+        $payrollDay = FinanceSetting::where('user_id', $userId)->where('key', 'payroll_start_day')->first()?->value ?? 25;
+        
+        // Calculate cycle start date based on the payroll day (same logic as dashboard)
+        $prevMonth = (clone $startDate)->subMonth();
+        if ($payrollDay === 'last') {
+            $cycleStartDate = $prevMonth->endOfMonth()->startOfDay();
+        } else {
+            $dayToUse = min((int)$payrollDay, $prevMonth->daysInMonth);
+            $cycleStartDate = $prevMonth->day($dayToUse)->startOfDay();
+        }
+
         $categories = FinanceCategory::where('type', 'expense')->orderBy('name')->get();
         
-        $budgets = FinanceBudget::where('user_id', auth()->id())
+        $budgets = FinanceBudget::where('user_id', $userId)
             ->where('month', $month)
             ->where('year', $year)
             ->get()
             ->keyBy('finance_category_id');
 
-        // Calculate actual spending for each category in that month
-        $spending = FinanceTransaction::where('user_id', auth()->id())
+        // Calculate actual spending for each category using the cycle period
+        $spending = FinanceTransaction::where('user_id', $userId)
             ->where('type', 'expense')
-            ->whereMonth('date', $month)
-            ->whereYear('date', $year)
-            ->select('finance_category_id', DB::raw('SUM(ABS(amount)) as total'))
+            ->whereBetween('date', [$cycleStartDate, $endDate])
+            ->select('finance_category_id', DB::raw('SUM(amount) as total'))
             ->groupBy('finance_category_id')
             ->get()
             ->keyBy('finance_category_id');
 
-        return view('pages.money-management.budgets.index', compact('categories', 'budgets', 'spending', 'month', 'year'));
+        // Calculate total income for this cycle
+        $incomePool = FinanceTransaction::where('user_id', $userId)
+            ->where('type', 'income')
+            ->whereBetween('date', [$cycleStartDate, $endDate])
+            ->sum('amount');
+
+        $totalBudget = $budgets->sum('amount');
+        $totalSpent = $spending->sum('total');
+
+        return view('pages.money-management.budgets.index', compact(
+            'categories', 
+            'budgets', 
+            'spending', 
+            'month', 
+            'year', 
+            'cycleStartDate', 
+            'endDate',
+            'incomePool',
+            'totalBudget',
+            'totalSpent'
+        ));
     }
 
     public function store(Request $request)

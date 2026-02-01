@@ -17,6 +17,7 @@ use App\Http\Controllers\MoneyManagement\TransactionController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserApprovalController;
+use App\Http\Controllers\UserAppController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -36,6 +37,12 @@ Route::middleware(['guest'])->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
     Route::get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+
+    // Forgot Password Routes
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
 // Protected Routes
@@ -50,12 +57,12 @@ Route::middleware(['auth', 'approved'])->group(function () {
     });
     
 
-    Route::middleware(['can:money-management'])->group(function () {
+    Route::middleware(['can:money-management.dashboard'])->group(function () {
         Route::prefix('money-management')->name('money-management.')->group(function () {
             Route::get('/dashboard', [MoneyManagementDashboardController::class, 'index'])->name('dashboard');
 
             // Transactions
-            Route::prefix('transactions')->name('transactions.')->group(function() {
+            Route::middleware(['can:money-management.transactions'])->prefix('transactions')->name('transactions.')->group(function() {
                 Route::get('/', [TransactionController::class, 'index'])->name('index');
                 Route::get('/datatable', [TransactionController::class, 'datatable'])->name('datatable');
                 Route::get('/categories', [TransactionController::class, 'getCategories'])->name('get-categories');
@@ -65,19 +72,19 @@ Route::middleware(['auth', 'approved'])->group(function () {
             });
 
             // Summary & Net Worth
-            Route::prefix('summary')->name('summary.')->group(function() {
+            Route::middleware(['can:money-management.summary'])->prefix('summary')->name('summary.')->group(function() {
                 Route::get('/', [SummaryController::class, 'index'])->name('index');
                 Route::get('/net-worth-snapshot', [SummaryController::class, 'takeNetWorthSnapshot'])->name('net-worth-snapshot');
             });
 
             // Budgets
-            Route::prefix('budgets')->name('budgets.')->group(function() {
+            Route::middleware(['can:money-management.budgets'])->prefix('budgets')->name('budgets.')->group(function() {
                 Route::get('/', [BudgetController::class, 'index'])->name('index');
                 Route::post('/', [BudgetController::class, 'store'])->name('store');
             });
 
             // Transfers
-            Route::prefix('transfers')->name('transfers.')->group(function() {
+            Route::middleware(['can:money-management.transfers'])->prefix('transfers')->name('transfers.')->group(function() {
                 Route::get('/', [TransferController::class, 'index'])->name('index');
                 Route::get('/datatable', [TransferController::class, 'datatable'])->name('datatable');
                 Route::post('/', [TransferController::class, 'store'])->name('store');
@@ -86,7 +93,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
             });
 
             // Recurring Transactions
-            Route::prefix('recurring')->name('recurring.')->group(function() {
+            Route::middleware(['can:money-management.recurring'])->prefix('recurring')->name('recurring.')->group(function() {
                 Route::get('/', [RecurringTransactionController::class, 'index'])->name('index');
                 Route::get('/datatable', [RecurringTransactionController::class, 'datatable'])->name('datatable');
                 Route::post('/', [RecurringTransactionController::class, 'store'])->name('store');
@@ -94,20 +101,20 @@ Route::middleware(['auth', 'approved'])->group(function () {
             });
 
             // Portfolio / Savings
-       // Portfolio
-    Route::group(['prefix' => 'portfolio', 'as' => 'portfolio.'], function() {
-        Route::get('/', [PortfolioController::class, 'index'])->name('index');
-        Route::get('/datatable', [PortfolioController::class, 'datatable'])->name('datatable');
-        Route::post('/store', [PortfolioController::class, 'store'])->name('store');
-        Route::delete('/{id}', [PortfolioController::class, 'destroy'])->name('destroy');
-        Route::get('/{id}', [PortfolioController::class, 'show'])->name('show');
-        
-        // Internal Transactions inside portfolio
-        Route::get('/{id}/transactions', [PortfolioController::class, 'transactionDatatable'])->name('transactions.datatable');
-        Route::post('/transaction/store', [PortfolioController::class, 'storeTransaction'])->name('transactions.store');
-        Route::post('/transaction/update/{id}', [PortfolioController::class, 'updateTransaction'])->name('transactions.update');
-        Route::delete('/transaction/destroy/{id}', [PortfolioController::class, 'destroyTransaction'])->name('transactions.destroy');
-    });
+            // Portfolio
+            Route::group(['prefix' => 'portfolio', 'as' => 'portfolio.'], function() {
+                Route::get('/', [PortfolioController::class, 'index'])->name('index');
+                Route::get('/datatable', [PortfolioController::class, 'datatable'])->name('datatable');
+                Route::post('/store', [PortfolioController::class, 'store'])->name('store');
+                Route::delete('/{id}', [PortfolioController::class, 'destroy'])->name('destroy');
+                Route::get('/{id}', [PortfolioController::class, 'show'])->name('show');
+                
+                // Internal Transactions inside portfolio
+                Route::get('/{id}/transactions', [PortfolioController::class, 'transactionDatatable'])->name('transactions.datatable');
+                Route::post('/transaction/store', [PortfolioController::class, 'storeTransaction'])->name('transactions.store');
+                Route::post('/transaction/update/{id}', [PortfolioController::class, 'updateTransaction'])->name('transactions.update');
+                Route::delete('/transaction/destroy/{id}', [PortfolioController::class, 'destroyTransaction'])->name('transactions.destroy');
+            });
         
             // Master Data Routes
             Route::prefix('master-data')->name('master-data.')->group(function() {
@@ -158,6 +165,14 @@ Route::middleware(['auth', 'approved'])->group(function () {
             Route::get('/user-list', [UserApprovalController::class, 'listing'])->name('user-approval.listing');
             Route::get('/user-list/datatable', [UserApprovalController::class, 'listingDatatable'])->name('user-approval.listing.datatable');
             Route::delete('/user-approval/destroy/{id}', [UserApprovalController::class, 'destroy'])->name('user-approval.destroy');
+            
+            // New: User App Access Management
+            Route::prefix('user-apps')->name('user-apps.')->group(function () {
+                Route::get('/{userId}', [UserAppController::class, 'index'])->name('index');
+                Route::get('/roles/{appId}', [UserAppController::class, 'getAppRoles'])->name('roles');
+                Route::post('/assign/{userId}', [UserAppController::class, 'assignApp'])->name('assign');
+                Route::delete('/remove/{userId}/{appId}', [UserAppController::class, 'removeApp'])->name('remove');
+            });
         });
 
         // Permission Management
@@ -188,6 +203,34 @@ Route::middleware(['auth', 'approved'])->group(function () {
             Route::get('/{masterCategoryExpenses}/edit', [MasterCategoryController::class, 'edit'])->name('edit');
             Route::put('/{masterCategoryExpenses}', [MasterCategoryController::class, 'update'])->name('update');
             Route::delete('/{masterCategoryExpenses}', [MasterCategoryController::class, 'destroy'])->name('destroy');
+        });
+
+        // App System Management Routes
+        Route::middleware(['can:permissions'])->group(function () {
+            Route::prefix('apps')->name('apps.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AppManagement\AppController::class, 'index'])->name('index');
+                Route::get('/datatable', [\App\Http\Controllers\AppManagement\AppController::class, 'datatable'])->name('datatable');
+                Route::post('/store', [\App\Http\Controllers\AppManagement\AppController::class, 'store'])->name('store');
+                Route::get('/edit/{id}', [\App\Http\Controllers\AppManagement\AppController::class, 'edit'])->name('edit');
+                Route::put('/update/{id}', [\App\Http\Controllers\AppManagement\AppController::class, 'update'])->name('update');
+                Route::delete('/destroy/{id}', [\App\Http\Controllers\AppManagement\AppController::class, 'destroy'])->name('destroy');
+            });
+            Route::prefix('app-roles')->name('app-roles.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AppManagement\AppRoleController::class, 'index'])->name('index');
+                Route::get('/datatable', [\App\Http\Controllers\AppManagement\AppRoleController::class, 'datatable'])->name('datatable');
+                Route::post('/store', [\App\Http\Controllers\AppManagement\AppRoleController::class, 'store'])->name('store');
+                Route::get('/edit/{id}', [\App\Http\Controllers\AppManagement\AppRoleController::class, 'edit'])->name('edit');
+                Route::put('/update/{id}', [\App\Http\Controllers\AppManagement\AppRoleController::class, 'update'])->name('update');
+                Route::delete('/destroy/{id}', [\App\Http\Controllers\AppManagement\AppRoleController::class, 'destroy'])->name('destroy');
+            });
+            Route::prefix('app-permissions')->name('app-permissions.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AppManagement\AppPermissionController::class, 'index'])->name('index');
+                Route::get('/datatable', [\App\Http\Controllers\AppManagement\AppPermissionController::class, 'datatable'])->name('datatable');
+                Route::post('/store', [\App\Http\Controllers\AppManagement\AppPermissionController::class, 'store'])->name('store');
+                Route::get('/edit/{id}', [\App\Http\Controllers\AppManagement\AppPermissionController::class, 'edit'])->name('edit');
+                Route::put('/update/{id}', [\App\Http\Controllers\AppManagement\AppPermissionController::class, 'update'])->name('update');
+                Route::delete('/destroy/{id}', [\App\Http\Controllers\AppManagement\AppPermissionController::class, 'destroy'])->name('destroy');
+            });
         });
     });
 

@@ -50,8 +50,9 @@ class UserApprovalController extends Controller
                 return $row->is_approved ? '<span class="badge badge-success">Approved</span>' : '<span class="badge badge-warning">Pending</span>';
             })
             ->addColumn('action', function($row){
-                $btn = '<a href="javascript:void(0)" data-id="'.$row->id.'" class="btn btn-primary btn-sm edit-btn">Edit</a>';
-                 $btn .= ' <a href="javascript:void(0)" data-id="'.$row->id.'" class="btn btn-danger btn-sm delete-btn">Delete</a>';
+                $btn = '<a href="'.route('administrator.user-apps.index', $row->id).'" class="btn btn-info btn-sm">Apps</a>';
+                $btn .= ' <a href="javascript:void(0)" data-id="'.$row->id.'" class="btn btn-primary btn-sm edit-btn ms-1">Edit</a>';
+                $btn .= ' <a href="javascript:void(0)" data-id="'.$row->id.'" class="btn btn-danger btn-sm delete-btn ms-1">Delete</a>';
                 return $btn;
             })
             ->editColumn('created_at', function($row){

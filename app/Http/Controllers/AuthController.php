@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Services\Auth\AuthService;
 use App\Services\Role\RoleService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Auth\Events\PasswordReset;
 
 class AuthController extends Controller
 {
@@ -75,5 +79,52 @@ class AuthController extends Controller
         $this->authService->register($data);
 
         return redirect()->route('login')->with('success', 'Registration successful! Please wait for administrator approval.');
+    }
+
+    public function showForgotPasswordForm()
+    {
+        return view('pages.auth.forgot-password');
+    }
+
+    public function sendResetLinkEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email'
+        ]);
+
+        // Local dev shortcut: skip email and redirect directly to reset password form
+        return redirect()->route('password.reset', [
+            'token' => 'local-dev-token',
+            'email' => $request->email
+        ]);
+    }
+
+    public function showResetPasswordForm(Request $request, $token = null)
+    {
+        return view('pages.auth.reset-password')->with(
+            ['token' => $token, 'email' => $request->email]
+        );
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        // Local dev shortcut: Directly update user password
+        $user = \App\Models\User::where('email', $request->email)->first();
+        
+        if ($user) {
+            $user->password = Hash::make($request->password);
+            $user->save();
+
+            event(new PasswordReset($user));
+
+            return redirect()->route('login')->with('status', 'Password has been successfully updated (Local Dev Mode).');
+        }
+
+        return back()->withErrors(['email' => 'User not found.']);
     }
 }

@@ -9,6 +9,14 @@
 
     <div class="card mb-10">
         <div class="card-body">
+            <div class="alert alert-dismissible bg-light-primary d-flex flex-column flex-sm-row p-5 mb-5">
+                <i class="ki-outline ki-notification-bing fs-2hx text-primary me-4 mb-5 mb-sm-0"></i>
+                <div class="d-flex flex-column pe-0 pe-sm-10">
+                    <h4 class="fw-bold">Active Payroll Cycle</h4>
+                    <span>This budget tracks spending from <strong>{{ $cycleStartDate->format('d M Y') }}</strong> to <strong>{{ $endDate->format('d M Y') }}</strong> (based on your payroll start day setting).</span>
+                </div>
+            </div>
+            
             <form action="{{ route('money-management.budgets.index') }}" method="GET" class="row g-5 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Month</label>
@@ -30,6 +38,73 @@
                     <button type="submit" class="btn btn-primary w-100">Filter</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-5 g-xl-10 mb-10">
+        <div class="col-md-4">
+            <div class="card h-100 bg-light-success shadow-sm">
+                <div class="card-body p-9">
+                    <div class="d-flex flex-stack">
+                        <div class="d-flex flex-column">
+                            <span class="text-success fw-bold fs-6">Income Pool (Cycle)</span>
+                            <span class="text-gray-800 fw-bolder fs-2hx">Rp {{ number_format($incomePool, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="symbol symbol-50px">
+                            <div class="symbol-label bg-success">
+                                <i class="ki-outline ki-entrance-left text-white fs-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 bg-light-primary shadow-sm">
+                <div class="card-body p-9">
+                    <div class="d-flex flex-stack">
+                        <div class="d-flex flex-column">
+                            <span class="text-primary fw-bold fs-6">Total Budget Limit</span>
+                            <span class="text-gray-800 fw-bolder fs-2hx">Rp {{ number_format($totalBudget, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="symbol symbol-50px">
+                            <div class="symbol-label bg-primary">
+                                <i class="ki-outline ki-abstract-26 text-white fs-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                    @if($incomePool > 0)
+                        <div class="progress h-6px w-100 mt-2">
+                             <div class="progress-bar bg-primary" role="progressbar" style="width: {{ min(($totalBudget / $incomePool) * 100, 100) }}%"></div>
+                        </div>
+                        <span class="text-gray-400 fs-7 fw-bold mt-1">{{ number_format(($totalBudget / $incomePool) * 100, 1) }}% of income pools</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 bg-light-danger shadow-sm">
+                <div class="card-body p-9">
+                    <div class="d-flex flex-stack">
+                        <div class="d-flex flex-column">
+                            <span class="text-danger fw-bold fs-6">Total Spent (Cycle)</span>
+                            <span class="text-gray-800 fw-bolder fs-2hx">Rp {{ number_format($totalSpent, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="symbol symbol-50px">
+                            <div class="symbol-label bg-danger">
+                                <i class="ki-outline ki-wallet text-white fs-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                    @if($totalBudget > 0)
+                        <div class="progress h-6px w-100 mt-2">
+                             <div class="progress-bar bg-danger" role="progressbar" style="width: {{ min(($totalSpent / $totalBudget) * 100, 100) }}%"></div>
+                        </div>
+                        <span class="text-gray-400 fs-7 fw-bold mt-1">{{ number_format(($totalSpent / $totalBudget) * 100, 1) }}% of budgets used</span>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 

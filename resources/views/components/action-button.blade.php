@@ -24,7 +24,7 @@
                 @if (isset($action['show']) && !$action['show']) @continue @endif
 
                 @php
-                    $hasPermission = empty($action['can']) || Laratrust::isAbleTo($action['can']);
+                    $hasPermission = empty($action['can']) || \Illuminate\Support\Facades\Gate::check($action['can']);
                     $attributes = $action['attr'] ?? [];
                     $iconHtml = renderIcon($action['icon'], $icons);
                     $attributesString = collect($attributes)->map(fn($v, $k) => "{$k}=\"{$v}\"")->implode(' ');
@@ -33,11 +33,11 @@
                 @if ($hasPermission)
                     <li>
                         @if (isset($action['onclick']))
-                            <button type="button" class="dropdown-item fw-semibold text-gray-600 rounded my-1 bg-hover-light-{{ $action['color'] }} text-hover-{{ $action['color'] }}" onclick="{{ $action['onclick'] }}" {!! $attributesString !!}>
+                            <button type="button" class="dropdown-item fw-semibold text-gray-600 rounded my-1 bg-hover-light-{{ $action['color'] }} text-hover-{{ $action['color'] }} {{ $action['class'] ?? '' }}" onclick="{{ $action['onclick'] }}" {!! $attributesString !!}>
                                 {!! $iconHtml !!} {{ $action['label'] }}
                             </button>
                         @elseif (isset($action['url']))
-                            <a href="{{ $action['url'] }}" class="dropdown-item fw-semibold text-gray-600 rounded my-1 bg-hover-light-{{ $action['color'] }} text-hover-{{ $action['color'] }}" {!! $attributesString !!}>
+                            <a href="{{ $action['url'] }}" class="dropdown-item fw-semibold text-gray-600 rounded my-1 bg-hover-light-{{ $action['color'] }} text-hover-{{ $action['color'] }} {{ $action['class'] ?? '' }}" {!! $attributesString !!}>
                                 {!! $iconHtml !!} {{ $action['label'] }}
                             </a>
                         @endif
@@ -49,7 +49,7 @@
 @elseif ($activeButtons->count() == 1)
     @php
         $action = $activeButtons->first();
-        $hasPermission = empty($action['can']) || Laratrust::isAbleTo($action['can']);
+        $hasPermission = empty($action['can']) || \Illuminate\Support\Facades\Gate::check($action['can']);
         $attributes = $action['attr'] ?? [];
         $iconHtml = renderIcon($action['icon'], $icons, 5);
         $attributesString = collect($attributes)->map(fn($v, $k) => "{$k}=\"{$v}\"")->implode(' ');
@@ -57,11 +57,11 @@
 
     @if ($hasPermission && (!isset($action['show']) || $action['show']))
         @if (isset($action['onclick']))
-            <button class="btn btn-sm btn-{{ $action['color'] }}" onclick="{{ $action['onclick'] }}" {!! $attributesString !!}>
+            <button class="btn btn-sm btn-{{ $action['color'] }} {{ $action['class'] ?? '' }}" onclick="{{ $action['onclick'] }}" {!! $attributesString !!}>
                 {!! $iconHtml !!} {{ $action['label'] }}
             </button>
         @elseif (isset($action['url']))
-            <a href="{{ $action['url'] }}" class="btn btn-sm btn-{{ $action['color'] }}" {!! $attributesString !!}>
+            <a href="{{ $action['url'] }}" class="btn btn-sm btn-{{ $action['color'] }} {{ $action['class'] ?? '' }}" {!! $attributesString !!}>
                 {!! $iconHtml !!} {{ $action['label'] }}
             </a>
         @endif

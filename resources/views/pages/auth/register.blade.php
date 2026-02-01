@@ -51,10 +51,8 @@
         <div class="fv-row mb-7">
             <label class="form-label fw-bolder text-dark fs-6">Role</label>
             <select name="role_id" class="form-select form-select-lg form-select-solid" data-control="select2" data-placeholder="Select a Role">
-                <option></option>
-                @foreach($roles as $role)
-                    <option value="{{ $role->id }}">{{ ucfirst($role->name) }}</option>
-                @endforeach
+                <option value="">Select a Role</option>
+                <option value="2">New Joiner</option>
             </select>
         </div>
         <!--end::Input group-->
