@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\MoneyManagement;
 
 use App\Http\Controllers\Controller;
+use App\Models\FinancePortfolio;
 use App\Models\FinanceInvestment;
 use App\Models\FinanceInvestmentTransaction;
 use App\Models\FinanceTransaction;
@@ -13,43 +14,28 @@ class PortfolioController extends Controller
 {
     public function index()
     {
-        // Calculate total balance passing to view if needed, or fetch via ajax
-        return view('pages.money-management.portfolio.index');
+        $globalInvestments = FinanceInvestment::orderBy('name')->get();
+        return view('pages.money-management.portfolio.index', compact('globalInvestments'));
     }
 
     public function datatable()
     {
-        // List Investments with calculated Balance per user
-        $investments = FinanceInvestment::with(['transactions' => function($query) {
-            $query->where('user_id', auth()->id());
-        }, 'generalTransactions' => function($query) {
-            $query->where('user_id', auth()->id());
-        }])->get()->map(function($inv) {
-            // From Specific Investment Transactions (deposit, profit, withdrawal, loss)
-            $invTrxIn = $inv->transactions->whereIn('type', ['deposit', 'profit'])->sum('amount');
-            $invTrxOut = $inv->transactions->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
-            
-            // From General Transactions (Income is +, Expense is -, Transfer is signed)
-            $genBalance = $inv->generalTransactions->sum(function($trx) {
-                if ($trx->type === 'expense') return -$trx->amount;
-                return $trx->amount; // income and signed transfer
-            });
+        $portfolios = FinancePortfolio::where('user_id', auth()->id())
+            ->with('investment')
+            ->get();
 
-            $inv->balance = ($invTrxIn - $invTrxOut) + $genBalance;
-            return $inv;
-        });
-
-        return Datatables::of($investments)
+        return Datatables::of($portfolios)
             ->addIndexColumn()
             ->addColumn('code_name', function($row) {
-                $code = $row->code ? '<span class="badge badge-light-primary me-2">'.$row->code.'</span>' : '';
-                return $code . '<span class="fw-bold text-gray-800">'.$row->name.'</span>';
+                $code = $row->investment && $row->investment->code ? '<span class="badge badge-light-primary me-2">'.$row->investment->code.'</span>' : '';
+                return $code . '<span class="fw-bold text-gray-800">'.$row->account_name.'</span>';
             })
             ->editColumn('balance', function($row) {
                 return '<span class="fw-bolder text-dark">Rp ' . number_format($row->balance, 0, ',', '.') . '</span>';
             })
             ->addColumn('action', function($row){
-                $btn = '<a href="'.route('money-management.portfolio.show', $row->id).'" class="btn btn-sm btn-light-primary w-100">View Details</a>';
+                $btn = '<a href="'.route('money-management.portfolio.show', $row->id).'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-2" title="View Details"><i class="ki-duotone ki-eye fs-3"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i></a>';
+                $btn .= '<button data-id="'.$row->id.'" class="btn btn-icon btn-active-light-danger w-30px h-30px delete-portfolio-btn" title="Delete"><i class="ki-duotone ki-trash fs-3"><span class="path1"></span><span class="path2"></span><span class="path3"></span><span class="path4"></span><span class="path5"></span></i></button>';
                 return $btn;
             })
             ->rawColumns(['code_name', 'balance', 'action'])
@@ -58,24 +44,13 @@ class PortfolioController extends Controller
 
     public function show($id)
     {
-        $investment = FinanceInvestment::with(['transactions' => function($query) {
-            $query->where('user_id', auth()->id());
-        }, 'generalTransactions' => function($query) {
-            $query->where('user_id', auth()->id());
-        }])->findOrFail($id);
+        $portfolio = FinancePortfolio::where('user_id', auth()->id())
+            ->with(['investment'])
+            ->findOrFail($id);
         
-        // Calculate Balance
-        $invTrxIn = $investment->transactions->whereIn('type', ['deposit', 'profit'])->sum('amount');
-        $invTrxOut = $investment->transactions->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
-        
-        $genBalance = $investment->generalTransactions->sum(function($trx) {
-            if ($trx->type === 'expense') return -$trx->amount;
-            return $trx->amount;
-        });
+        $balance = $portfolio->balance;
 
-        $balance = ($invTrxIn - $invTrxOut) + $genBalance;
-
-        return view('pages.money-management.portfolio.show', compact('investment', 'balance'));
+        return view('pages.money-management.portfolio.show', compact('portfolio', 'balance'));
     }
 
     public function transactionDatatable($id)
@@ -153,15 +128,47 @@ class PortfolioController extends Controller
             ->make(true);
     }
 
-    public function storeTransaction(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
             'finance_investment_id' => 'required|exists:finance_investments,id',
+            'account_name' => 'required|string|max:255',
+            'account_number' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $data = $request->all();
+        $data['user_id'] = auth()->id();
+
+        FinancePortfolio::create($data);
+
+        return response()->json(['success' => 'Akun Portofolio berhasil ditambahkan']);
+    }
+
+    public function destroy($id)
+    {
+        $portfolio = FinancePortfolio::where('user_id', auth()->id())->findOrFail($id);
+        
+        // Check if has transactions
+        if ($portfolio->generalTransactions()->exists() || $portfolio->transactions()->exists()) {
+            return response()->json(['error' => 'Tidak bisa menghapus akun yang sudah memiliki riwayat transaksi'], 400);
+        }
+
+        $portfolio->delete();
+        return response()->json(['success' => 'Akun Portofolio berhasil dihapus']);
+    }
+
+    public function storeTransaction(Request $request)
+    {
+        $request->validate([
+            'finance_investment_id' => 'required|exists:finance_portfolios,id',
             'date' => 'required|date',
             'type' => 'required',
             'amount' => 'required|numeric|min:0',
             'description' => 'nullable|string',
         ]);
+
+        $portfolio = FinancePortfolio::where('user_id', auth()->id())->findOrFail($request->finance_investment_id);
 
         $data = $request->all();
         $data['user_id'] = auth()->id();

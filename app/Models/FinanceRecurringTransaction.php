@@ -5,25 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class FinanceTransaction extends Model
+class FinanceRecurringTransaction extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'date',
+        'name',
         'type',
         'finance_category_id',
         'finance_investment_id',
-        'to_finance_investment_id',
         'amount',
+        'frequency',
+        'start_date',
+        'next_date',
         'description',
+        'is_active',
     ];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
 
     public function category()
     {
@@ -35,8 +33,8 @@ class FinanceTransaction extends Model
         return $this->belongsTo(FinancePortfolio::class, 'finance_investment_id');
     }
 
-    public function destinationPortfolio()
+    public function user()
     {
-        return $this->belongsTo(FinancePortfolio::class, 'to_finance_investment_id');
+        return $this->belongsTo(User::class);
     }
 }

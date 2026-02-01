@@ -8,7 +8,7 @@
     @endsection
 
     <!--begin::Card-->
-    <div class="card">
+    <div class="card card-flush shadow-sm">
         <div class="card-header border-0 pt-6">
             <div class="card-title">
                 <div class="d-flex align-items-center position-relative my-1">
@@ -16,13 +16,13 @@
                         <span class="path1"></span><span class="path2"></span>
                     </i>
                     <input type="text" id="portfolio_search"
-                        class="form-control form-control-solid w-250px ps-12" placeholder="Search Investments..." />
+                        class="form-control form-control-solid w-250px ps-12" placeholder="Search My Accounts..." />
                 </div>
             </div>
             <div class="card-toolbar">
-                <a href="{{ route('money-management.master-data.investments.index') }}" class="btn btn-primary">
-                    <i class="ki-duotone ki-eye fs-2"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i> Manage Investment Items
-                </a>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal_add_portfolio">
+                    <i class="ki-duotone ki-plus fs-2"></i> Add New Account
+                </button>
             </div>
         </div>
         <div class="card-body">
@@ -30,9 +30,9 @@
                 <thead>
                     <tr class="text-start text-muted fw-bold fs-7 text-uppercase gs-0">
                         <th class="min-w-50px">No</th>
-                        <th class="min-w-150px">Name</th>
-                        <th class="min-w-200px">Description</th>
-                        <th class="min-w-150px">Current Balance</th>
+                        <th class="min-w-150px">Account Name</th>
+                        <th class="min-w-150px">Provider</th>
+                        <th class="min-w-150px">Balance</th>
                         <th class="text-end min-w-100px">Actions</th>
                     </tr>
                 </thead>
@@ -41,6 +41,52 @@
         </div>
     </div>
     <!--end::Card-->
+
+    <!-- Modal Add Portfolio -->
+    <div class="modal fade" id="modal_add_portfolio" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered mw-500px">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="fw-bold">Register My Account</h2>
+                    <div class="btn btn-icon btn-sm btn-active-icon-primary" data-bs-dismiss="modal">
+                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                    </div>
+                </div>
+                <div class="modal-body py-10 px-lg-17">
+                    <form id="form_add_portfolio">
+                        @csrf
+                        <div class="fv-row mb-7">
+                            <label class="required fs-6 fw-semibold mb-2">Platform / Bank Provider</label>
+                            <select name="finance_investment_id" class="form-select form-select-solid" data-control="select2" data-dropdown-parent="#modal_add_portfolio" data-placeholder="Select Provider">
+                                <option></option>
+                                @foreach($globalInvestments as $inv)
+                                    <option value="{{ $inv->id }}">{{ $inv->name }} ({{ $inv->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="fv-row mb-7">
+                            <label class="required fs-6 fw-semibold mb-2">My Account Name</label>
+                            <input type="text" name="account_name" class="form-control form-control-solid" placeholder="e.g. My Savings, Business Wallet" required />
+                        </div>
+                        <div class="fv-row mb-7">
+                            <label class="fs-6 fw-semibold mb-2">Account Number (Optional)</label>
+                            <input type="text" name="account_number" class="form-control form-control-solid" placeholder="e.g. 123-456-789" />
+                        </div>
+                        <div class="fv-row mb-7">
+                            <label class="fs-6 fw-semibold mb-2">Description</label>
+                            <textarea name="description" class="form-control form-control-solid" rows="2"></textarea>
+                        </div>
+                        <div class="text-center pt-15">
+                            <button type="reset" class="btn btn-light me-3" data-bs-dismiss="modal">Discard</button>
+                            <button type="submit" class="btn btn-primary">
+                                <span class="indicator-label">Submit</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
     @push('scripts')
     <script>
@@ -51,11 +97,61 @@
                 ajax: "{{ route('money-management.portfolio.datatable') }}",
                 columns: [
                     {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
-                    {data: 'code_name', name: 'name'},
-                    {data: 'description', name: 'description'},
+                    {data: 'code_name', name: 'account_name'},
+                    {data: 'investment.name', name: 'investment.name'},
                     {data: 'balance', name: 'balance', searchable: false},
                     {data: 'action', name: 'action', orderable: false, searchable: false, className: "text-end"},
                 ]
+            });
+
+            $('#form_add_portfolio').submit(function(e) {
+                e.preventDefault();
+                let btn = $(this).find('button[type="submit"]');
+                btn.attr('data-kt-indicator', 'on').prop('disabled', true);
+
+                $.ajax({
+                    url: "{{ route('money-management.portfolio.store') }}",
+                    method: "POST",
+                    data: $(this).serialize(),
+                    success: function(res) {
+                        Swal.fire({ text: res.success, icon: "success" });
+                        $('#modal_add_portfolio').modal('hide');
+                        $('#form_add_portfolio')[0].reset();
+                        table.ajax.reload();
+                    },
+                    error: function(err) {
+                        Swal.fire({ text: err.responseJSON.message || "Error occurred", icon: "error" });
+                    },
+                    complete: function() {
+                        btn.removeAttr('data-kt-indicator').prop('disabled', false);
+                    }
+                });
+            });
+
+            $(document).on('click', '.delete-portfolio-btn', function() {
+                let id = $(this).data('id');
+                Swal.fire({
+                    title: 'Hapus Akun?',
+                    text: "Data transaksi terkait akan tetap ada, tapi akun ini tidak bisa digunakan lagi.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Hapus!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "{{ url('money-management/portfolio') }}/" + id,
+                            method: "DELETE",
+                            data: { _token: "{{ csrf_token() }}" },
+                            success: function(res) {
+                                Swal.fire('Deleted!', res.success, 'success');
+                                table.ajax.reload();
+                            },
+                            error: function(err) {
+                                Swal.fire('Error!', err.responseJSON.error || "Gagal menghapus", 'error');
+                            }
+                        });
+                    }
+                });
             });
 
             $('#portfolio_search').keyup(function(){

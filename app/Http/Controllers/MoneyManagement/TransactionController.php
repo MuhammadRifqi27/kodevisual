@@ -4,7 +4,7 @@ namespace App\Http\Controllers\MoneyManagement;
 
 use App\Http\Controllers\Controller;
 use App\Models\FinanceCategory;
-use App\Models\FinanceInvestment;
+use App\Models\FinancePortfolio;
 use App\Models\FinanceTransaction;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -13,7 +13,7 @@ class TransactionController extends Controller
 {
     public function index()
     {
-        $investments = FinanceInvestment::all();
+        $investments = FinancePortfolio::where('user_id', auth()->id())->get();
         return view('pages.money-management.transactions.index', compact('investments'));
     }
 
@@ -21,7 +21,7 @@ class TransactionController extends Controller
     {
         $data = FinanceTransaction::where('user_id', auth()->id())
             ->whereIn('type', ['income', 'expense']) // Exclude transfers from main list
-            ->with('category');
+            ->with(['category', 'portfolio']);
 
         if ($request->has('type') && $request->type != 'all') {
             $data->where('type', $request->type);
@@ -39,7 +39,7 @@ class TransactionController extends Controller
                 return $row->category ? $row->category->name : '-';
             })
             ->addColumn('investment_name', function($row) {
-                return $row->investment ? $row->investment->name : '<span class="text-muted">No Portfolio</span>';
+                return $row->portfolio ? $row->portfolio->account_name : '<span class="text-muted">No Portfolio</span>';
             })
             ->editColumn('type', function($row) {
                 if($row->type == 'income') return '<span class="badge badge-light-success">Income</span>';
@@ -79,10 +79,14 @@ class TransactionController extends Controller
             'date' => 'required|date',
             'type' => 'required|in:income,expense',
             'category_id' => 'required|exists:finance_categories,id',
-            'investment_id' => 'nullable|exists:finance_investments,id',
+            'investment_id' => 'nullable|exists:finance_portfolios,id',
             'amount' => 'required|numeric|min:0',
             'description' => 'nullable|string',
         ]);
+
+        if ($request->investment_id) {
+            FinancePortfolio::where('user_id', auth()->id())->findOrFail($request->investment_id);
+        }
 
         FinanceTransaction::create([
             'user_id' => auth()->id(),
@@ -103,10 +107,14 @@ class TransactionController extends Controller
             'date' => 'required|date',
             'type' => 'required|in:income,expense',
             'category_id' => 'required|exists:finance_categories,id',
-            'investment_id' => 'nullable|exists:finance_investments,id',
+            'investment_id' => 'nullable|exists:finance_portfolios,id',
             'amount' => 'required|numeric|min:0',
             'description' => 'nullable|string',
         ]);
+
+        if ($request->investment_id) {
+            FinancePortfolio::where('user_id', auth()->id())->findOrFail($request->investment_id);
+        }
 
         $transaction = FinanceTransaction::where('user_id', auth()->id())->findOrFail($id);
         $transaction->update([

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\MoneyManagement;
 use App\Http\Controllers\Controller;
 use App\Models\FinanceTransaction;
 use App\Models\FinanceCategory;
+use App\Models\FinancePortfolio;
+use App\Models\FinanceNetWorthSnapshot;
 use App\Models\FinanceSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +26,33 @@ class SummaryController extends Controller
         
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+
+        // Assets / Net Worth
+        $portfolios = FinancePortfolio::where('user_id', $userId)->with('investment')->get();
+        $totalNetWorth = $portfolios->sum('balance');
+        
+        // Asset Allocation Data
+        $assetAllocation = $portfolios->map(function($p) {
+            return [
+                'name' => $p->account_name . ' (' . ($p->investment->name ?? 'Other') . ')',
+                'value' => (float)$p->balance,
+                'color' => '#'.substr(md5($p->account_name), 0, 6)
+            ];
+        })->values();
+
+        // Net Worth History (Last 6 months)
+        $netWorthHistory = FinanceNetWorthSnapshot::where('user_id', $userId)
+            ->orderBy('date', 'asc')
+            ->take(12)
+            ->get()
+            ->map(function($s) {
+                return [
+                    'date' => $s->date,
+                    'amount' => (float)$s->amount
+                ];
+            });
+
+        // ... rest of existing logic ...
 
         // Fetch payroll start day from settings (default to 25)
         $payrollDay = FinanceSetting::where('user_id', $userId)->where('key', 'payroll_start_day')->first()?->value ?? 25;
@@ -87,8 +116,24 @@ class SummaryController extends Controller
             'netProfit', 
             'advice',
             'month',
-            'year'
+            'year',
+            'totalNetWorth',
+            'assetAllocation',
+            'netWorthHistory'
         ));
+    }
+
+    public function takeNetWorthSnapshot()
+    {
+        $userId = auth()->id();
+        $totalBalance = FinancePortfolio::where('user_id', $userId)->get()->sum('balance');
+
+        FinanceNetWorthSnapshot::updateOrCreate(
+            ['user_id' => $userId, 'date' => date('Y-m-d')],
+            ['amount' => $totalBalance]
+        );
+
+        return response()->json(['success' => 'Snapshot Net Worth berhasil diambil']);
     }
 
     private function generateAdvice($currentExpense, $lastExpense, $categorySummary, $netProfit)

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\MoneyManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\FinanceInvestment;
+use App\Models\FinancePortfolio;
 use App\Models\FinanceTransaction;
 use App\Models\FinanceCategory;
 use Illuminate\Http\Request;
@@ -14,7 +14,7 @@ class TransferController extends Controller
 {
     public function index()
     {
-        $accounts = FinanceInvestment::orderBy('name')->get();
+        $accounts = FinancePortfolio::where('user_id', auth()->id())->get();
         return view('pages.money-management.transfers.index', compact('accounts'));
     }
 
@@ -22,7 +22,7 @@ class TransferController extends Controller
     {
         $data = FinanceTransaction::where('user_id', auth()->id())
             ->where('type', 'transfer')
-            ->with(['investment', 'destinationAccount'])
+            ->with(['portfolio', 'destinationPortfolio'])
             ->orderBy('date', 'desc')
             ->orderBy('created_at', 'desc');
 
@@ -32,10 +32,10 @@ class TransferController extends Controller
                 return date('d M Y', strtotime($row->date));
             })
             ->addColumn('from', function($row) {
-                return $row->investment->name ?? '-';
+                return $row->portfolio->account_name ?? '-';
             })
             ->addColumn('to', function($row) {
-                return $row->destinationAccount->name ?? '-';
+                return $row->destinationPortfolio->account_name ?? '-';
             })
             ->editColumn('amount', function($row) {
                 return 'Rp ' . number_format($row->amount, 0, ',', '.');
@@ -52,8 +52,8 @@ class TransferController extends Controller
     {
         $request->validate([
             'date' => 'required|date',
-            'from_account_id' => 'required|exists:finance_investments,id',
-            'to_account_id' => 'required|exists:finance_investments,id|different:from_account_id',
+            'from_account_id' => 'required|exists:finance_portfolios,id',
+            'to_account_id' => 'required|exists:finance_portfolios,id|different:from_account_id',
             'amount' => 'required|numeric|min:0.01',
             'description' => 'nullable|string',
         ]);
@@ -66,9 +66,12 @@ class TransferController extends Controller
             ['description' => 'System created category for internal transfers']
         );
 
-        DB::transaction(function() use ($request, $userId, $category) {
+        $fromAccount = FinancePortfolio::where('user_id', $userId)->findOrFail($request->from_account_id);
+        $toAccount = FinancePortfolio::where('user_id', $userId)->findOrFail($request->to_account_id);
+
+        $transactionId = DB::transaction(function() use ($request, $userId, $category, $fromAccount, $toAccount) {
             // 1. Transaction FROM (Outbound)
-            FinanceTransaction::create([
+            $from = FinanceTransaction::create([
                 'user_id' => $userId,
                 'date' => $request->date,
                 'type' => 'transfer',
@@ -76,7 +79,7 @@ class TransferController extends Controller
                 'finance_investment_id' => $request->from_account_id,
                 'to_finance_investment_id' => $request->to_account_id,
                 'amount' => -$request->amount, // Negative
-                'description' => $request->description ?? 'Transfer to ' . FinanceInvestment::find($request->to_account_id)->name,
+                'description' => $request->description ?? 'Transfer to ' . $toAccount->account_name,
             ]);
 
             // 2. Transaction TO (Inbound)
@@ -88,11 +91,16 @@ class TransferController extends Controller
                 'finance_investment_id' => $request->to_account_id,
                 'to_finance_investment_id' => $request->from_account_id,
                 'amount' => $request->amount, // Positive
-                'description' => $request->description ?? 'Transfer from ' . FinanceInvestment::find($request->from_account_id)->name,
+                'description' => $request->description ?? 'Transfer from ' . $fromAccount->account_name,
             ]);
+
+            return $from->id;
         });
 
-        return response()->json(['success' => 'Transfer berhasil dicatat']);
+        return response()->json([
+            'success' => 'Transfer berhasil dicatat',
+            'transaction_id' => $transactionId
+        ]);
     }
 
     public function destroy($id)
@@ -114,5 +122,13 @@ class TransferController extends Controller
         });
 
         return response()->json(['success' => 'Transfer berhasil dihapus']);
+    }
+    public function showReceipt($id)
+    {
+        $transaction = FinanceTransaction::where('user_id', auth()->id())
+            ->with(['portfolio', 'destinationPortfolio'])
+            ->findOrFail($id);
+
+        return view('pages.money-management.transfers.receipt', compact('transaction'));
     }
 }

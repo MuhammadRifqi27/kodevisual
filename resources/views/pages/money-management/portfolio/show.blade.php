@@ -1,10 +1,10 @@
 <x-default-layout>
     @section('title')
-        {{ $investment->name }} Details
+        {{ $portfolio->account_name }} Details
     @endsection
 
     @section('breadcrumbs')
-        {{ Breadcrumbs::render('money-management.portfolio.show', $investment->id) }}
+        {{ Breadcrumbs::render('money-management.portfolio.show', $portfolio->id) }}
     @endsection
 
     <div class="row g-5 g-xl-10 mb-5 mb-xl-10">
@@ -13,10 +13,8 @@
             <div class="card card-flush h-xl-100">
                 <div class="card-header pt-7">
                     <h3 class="card-title align-items-start flex-column">
-                        <span class="card-label fw-bold text-gray-800">{{ $investment->name }}</span>
-                        @if($investment->code)
-                            <span class="text-gray-400 mt-1 fw-semibold fs-6">Code: {{ $investment->code }}</span>
-                        @endif
+                        <span class="card-label fw-bold text-gray-800">{{ $portfolio->account_name }}</span>
+                        <span class="text-gray-400 mt-1 fw-semibold fs-6">Provider: {{ $portfolio->investment->name ?? 'Other' }}</span>
                     </h3>
                     <div class="card-toolbar">
                         <div class="d-flex align-items-center">
@@ -72,7 +70,7 @@
                 <form id="form_transaction" class="form">
                     @csrf
                     <input type="hidden" name="id" id="trx_id">
-                    <input type="hidden" name="finance_investment_id" value="{{ $investment->id }}">
+                    <input type="hidden" name="finance_investment_id" value="{{ $portfolio->id }}">
                     
                     <div class="modal-body py-10 px-lg-17">
                         <div class="fv-row mb-7">
@@ -119,7 +117,7 @@
             let table = $('#table_transactions').DataTable({
                 processing: true,
                 serverSide: true,
-                ajax: "{{ route('money-management.portfolio.transactions.datatable', $investment->id) }}",
+                ajax: "{{ route('money-management.portfolio.transactions.datatable', $portfolio->id) }}",
                 columns: [
                     {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                     {data: 'date', name: 'date'},

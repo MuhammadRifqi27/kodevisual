@@ -5,16 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class FinanceCategory extends Model
+class FinanceBudget extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'name',
-        'type',
-        'description',
+        'finance_category_id',
+        'amount',
+        'month',
+        'year',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(FinanceCategory::class, 'finance_category_id');
+    }
 
     public function user()
     {

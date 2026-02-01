@@ -15,14 +15,8 @@ class FinanceInvestment extends Model
         'description',
     ];
 
-
-    public function transactions()
+    public function portfolios()
     {
-        return $this->hasMany(FinanceInvestmentTransaction::class, 'finance_investment_id');
-    }
-
-    public function generalTransactions()
-    {
-        return $this->hasMany(FinanceTransaction::class, 'finance_investment_id');
+        return $this->hasMany(FinancePortfolio::class, 'finance_investment_id');
     }
 }

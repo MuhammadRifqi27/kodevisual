@@ -37,19 +37,19 @@ class MoneyManagementDashboardController extends Controller
         }
 
         // 1. Calculate Liquid Cash vs Long-term Investments
-        $investments = FinanceInvestment::all();
+        $portfolios = \App\Models\FinancePortfolio::where('user_id', $userId)->with('investment')->get();
         $portfolioData = [];
         $totalNetWorthAtEnd = 0;
         $totalLiquidCash = 0;
         $totalInvestmentValue = 0;
 
         $liquidAccounts = [];
-        foreach ($investments as $inv) {
-            $prevInvIn = FinanceInvestmentTransaction::where('finance_investment_id', $inv->id)->where('user_id', $userId)->where('date', '<=', $endDate)->whereIn('type', ['deposit', 'profit'])->sum('amount');
-            $prevInvOut = FinanceInvestmentTransaction::where('finance_investment_id', $inv->id)->where('user_id', $userId)->where('date', '<=', $endDate)->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
+        foreach ($portfolios as $portfolio) {
+            $prevInvIn = FinanceInvestmentTransaction::where('finance_investment_id', $portfolio->id)->where('user_id', $userId)->where('date', '<=', $endDate)->whereIn('type', ['deposit', 'profit'])->sum('amount');
+            $prevInvOut = FinanceInvestmentTransaction::where('finance_investment_id', $portfolio->id)->where('user_id', $userId)->where('date', '<=', $endDate)->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
             
             // Calculate General Transactions (Income is +, Expense is -, Transfer is signed)
-            $genBalance = FinanceTransaction::where('finance_investment_id', $inv->id)
+            $genBalance = FinanceTransaction::where('finance_investment_id', $portfolio->id)
                 ->where('user_id', $userId)
                 ->where('date', '<=', $endDate)
                 ->select(DB::raw("SUM(CASE WHEN type = 'expense' THEN -amount ELSE amount END) as total"))
@@ -59,7 +59,9 @@ class MoneyManagementDashboardController extends Controller
             $totalNetWorthAtEnd += $balance;
 
             // Heuristic to separate liquid cash from investments
-            $isInvestment = in_array(strtoupper($inv->name), ['GOLD', 'BITCOIN', 'CRYPTO', 'SAHAM', 'STOCK']) || in_array(strtoupper($inv->code), ['XAU', 'BTC', 'ETH']);
+            $invName = strtoupper($portfolio->investment->name ?? '');
+            $invCode = strtoupper($portfolio->investment->code ?? '');
+            $isInvestment = in_array($invName, ['GOLD', 'BITCOIN', 'CRYPTO', 'SAHAM', 'STOCK']) || in_array($invCode, ['XAU', 'BTC', 'ETH']);
             
             if ($isInvestment) {
                 $totalInvestmentValue += $balance;
@@ -67,7 +69,7 @@ class MoneyManagementDashboardController extends Controller
                 $totalLiquidCash += $balance;
                 if ($balance != 0) {
                     $liquidAccounts[] = [
-                        'name' => $inv->name,
+                        'name' => $portfolio->account_name,
                         'balance' => $balance
                     ];
                 }
@@ -75,7 +77,7 @@ class MoneyManagementDashboardController extends Controller
 
             if ($balance != 0) {
                 $portfolioData[] = [
-                    'name' => $inv->name,
+                    'name' => $portfolio->account_name,
                     'balance' => $balance,
                     'is_investment' => $isInvestment
                 ];
@@ -148,7 +150,7 @@ class MoneyManagementDashboardController extends Controller
         $recentTransactions = FinanceTransaction::where('user_id', $userId)
             ->whereIn('type', ['income', 'expense'])
             ->whereBetween('date', [$cycleStartDate, $endDate])
-            ->with(['category', 'investment'])
+            ->with(['category', 'portfolio'])
             ->orderBy('date', 'desc')
             ->orderBy('created_at', 'desc')
             ->take(15)

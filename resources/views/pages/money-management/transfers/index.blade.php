@@ -114,6 +114,20 @@
         </div>
     </div>
 
+    <!-- BEGIN::Modal Transfer Receipt -->
+    <div class="modal fade" id="modal_receipt" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered mw-500px">
+            <div class="modal-content" id="receipt_container">
+                <!-- Content loaded via AJAX -->
+                <div class="p-20 text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
         $(document).ready(function() {
@@ -128,8 +142,35 @@
                     {data: 'to', name: 'to'},
                     {data: 'amount', name: 'amount'},
                     {data: 'description', name: 'description'},
-                    {data: 'action', name: 'action', orderable: false, searchable: false, className: "text-end"},
+                    {
+                        data: 'action', 
+                        name: 'action', 
+                        orderable: false, 
+                        searchable: false, 
+                        className: "text-end",
+                        render: function(data, type, row) {
+                            return `
+                                <button data-id="${row.id}" class="btn btn-icon btn-active-light-primary w-30px h-30px view-receipt-btn me-2" title="View Receipt">
+                                    <i class="ki-duotone ki-file-down fs-3"><span class="path1"></span><span class="path2"></span></i>
+                                </button>
+                                ${data}
+                            `;
+                        }
+                    },
                 ]
+            });
+
+            function showReceipt(id) {
+                $('#modal_receipt').modal('show');
+                $('#receipt_container').html('<div class="p-20 text-center"><div class="spinner-border text-primary" role="status"></div></div>');
+                
+                $.get("{{ route('money-management.transfers.receipt', ':id') }}".replace(':id', id), function(html) {
+                    $('#receipt_container').html(html);
+                });
+            }
+
+            $(document).on('click', '.view-receipt-btn', function() {
+                showReceipt($(this).data('id'));
             });
 
             $('#transfer_search').keyup(function(){
@@ -155,7 +196,22 @@
                         btn.removeAttr('data-kt-indicator').prop('disabled', false);
                         $('#modal_transfer').modal('hide');
                         table.ajax.reload();
-                        Swal.fire({ text: response.success, icon: "success", buttonsStyling: false, confirmButtonText: "Ok!", customClass: { confirmButton: "btn btn-primary" } });
+                        
+                        Swal.fire({ 
+                            text: response.success, 
+                            icon: "success", 
+                            showCancelButton: true,
+                            confirmButtonText: "Print Receipt",
+                            cancelButtonText: "Close",
+                            customClass: { 
+                                confirmButton: "btn btn-primary",
+                                cancelButton: "btn btn-light"
+                            } 
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                showReceipt(response.transaction_id);
+                            }
+                        });
                     },
                     error: function(xhr) {
                         btn.removeAttr('data-kt-indicator').prop('disabled', false);

@@ -43,6 +43,18 @@ Breadcrumbs::for('money-management.summary', function (BreadcrumbTrail $trail) {
     $trail->push('Summary', route('money-management.summary.index'));
 });
 
+// Money Management > Budgets
+Breadcrumbs::for('money-management.budgets', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Monthly Budgets', route('money-management.budgets.index'));
+});
+
+// Money Management > Recurring
+Breadcrumbs::for('money-management.recurring', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Recurring Transactions', route('money-management.recurring.index'));
+});
+
 // Money Management > Portfolio > Details
 Breadcrumbs::for('money-management.portfolio.show', function (BreadcrumbTrail $trail, $id) {
     $trail->parent('money-management.portfolio');

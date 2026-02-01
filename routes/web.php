@@ -6,9 +6,11 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DetailExpensesController;
 use App\Http\Controllers\DetailExpensesRifqiController;
 use App\Http\Controllers\MasterCategoryController;
+use App\Http\Controllers\MoneyManagement\BudgetController;
 use App\Http\Controllers\MoneyManagement\MasterDataController;
 use App\Http\Controllers\MoneyManagement\MoneyManagementDashboardController;
 use App\Http\Controllers\MoneyManagement\PortfolioController;
+use App\Http\Controllers\MoneyManagement\RecurringTransactionController;
 use App\Http\Controllers\MoneyManagement\TransferController;
 use App\Http\Controllers\MoneyManagement\SummaryController;
 use App\Http\Controllers\MoneyManagement\TransactionController;
@@ -62,9 +64,16 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::delete('/{id}', [TransactionController::class, 'destroy'])->name('destroy');
             });
 
-            // Summary
+            // Summary & Net Worth
             Route::prefix('summary')->name('summary.')->group(function() {
                 Route::get('/', [SummaryController::class, 'index'])->name('index');
+                Route::get('/net-worth-snapshot', [SummaryController::class, 'takeNetWorthSnapshot'])->name('net-worth-snapshot');
+            });
+
+            // Budgets
+            Route::prefix('budgets')->name('budgets.')->group(function() {
+                Route::get('/', [BudgetController::class, 'index'])->name('index');
+                Route::post('/', [BudgetController::class, 'store'])->name('store');
             });
 
             // Transfers
@@ -72,22 +81,34 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::get('/', [TransferController::class, 'index'])->name('index');
                 Route::get('/datatable', [TransferController::class, 'datatable'])->name('datatable');
                 Route::post('/', [TransferController::class, 'store'])->name('store');
+                Route::get('/receipt/{id}', [TransferController::class, 'showReceipt'])->name('receipt');
                 Route::delete('/{id}', [TransferController::class, 'destroy'])->name('destroy');
             });
 
-            // Portfolio / Savings
-            Route::prefix('portfolio')->name('portfolio.')->group(function() {
-                Route::get('/', [PortfolioController::class, 'index'])->name('index');
-                Route::get('/datatable', [PortfolioController::class, 'datatable'])->name('datatable');
-                Route::get('/{id}', [PortfolioController::class, 'show'])->name('show');
-                
-                // Transactions internal to Portfolio
-                Route::get('/{id}/transactions-datatable', [PortfolioController::class, 'transactionDatatable'])->name('transactions.datatable');
-                Route::post('/transactions', [PortfolioController::class, 'storeTransaction'])->name('transactions.store');
-                Route::put('/transactions/{id}', [PortfolioController::class, 'updateTransaction'])->name('transactions.update');
-                Route::delete('/transactions/{id}', [PortfolioController::class, 'destroyTransaction'])->name('transactions.destroy');
+            // Recurring Transactions
+            Route::prefix('recurring')->name('recurring.')->group(function() {
+                Route::get('/', [RecurringTransactionController::class, 'index'])->name('index');
+                Route::get('/datatable', [RecurringTransactionController::class, 'datatable'])->name('datatable');
+                Route::post('/', [RecurringTransactionController::class, 'store'])->name('store');
+                Route::delete('/{id}', [RecurringTransactionController::class, 'destroy'])->name('destroy');
             });
-            
+
+            // Portfolio / Savings
+       // Portfolio
+    Route::group(['prefix' => 'portfolio', 'as' => 'portfolio.'], function() {
+        Route::get('/', [PortfolioController::class, 'index'])->name('index');
+        Route::get('/datatable', [PortfolioController::class, 'datatable'])->name('datatable');
+        Route::post('/store', [PortfolioController::class, 'store'])->name('store');
+        Route::delete('/{id}', [PortfolioController::class, 'destroy'])->name('destroy');
+        Route::get('/{id}', [PortfolioController::class, 'show'])->name('show');
+        
+        // Internal Transactions inside portfolio
+        Route::get('/{id}/transactions', [PortfolioController::class, 'transactionDatatable'])->name('transactions.datatable');
+        Route::post('/transaction/store', [PortfolioController::class, 'storeTransaction'])->name('transactions.store');
+        Route::post('/transaction/update/{id}', [PortfolioController::class, 'updateTransaction'])->name('transactions.update');
+        Route::delete('/transaction/destroy/{id}', [PortfolioController::class, 'destroyTransaction'])->name('transactions.destroy');
+    });
+        
             // Master Data Routes
             Route::prefix('master-data')->name('master-data.')->group(function() {
                 // Category Expenses

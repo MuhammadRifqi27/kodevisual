@@ -7,6 +7,97 @@
         {{ Breadcrumbs::render('money-management.summary') }}
     @endsection
 
+    <div class="row g-5 g-xl-10 mb-5 mb-xl-10">
+        <!-- Net Worth Card -->
+        <div class="col-xl-4">
+            <div class="card card-flush h-md-100 bg-primary shadow-sm" style="background: linear-gradient(112.14deg, #1B8ADB 0%, #21C1CF 100%)">
+                <div class="card-header pt-7">
+                    <h3 class="card-title align-items-start flex-column">
+                        <span class="card-label fw-bold text-white">Current Net Worth</span>
+                        <span class="text-white opacity-75 mt-1 fw-semibold fs-6">Total assets across all accounts</span>
+                    </h3>
+                    <div class="card-toolbar">
+                        <button class="btn btn-sm btn-light btn-active-info" id="btn_take_snapshot" title="Take Snapshot">
+                            Snapshoot
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center text-center py-10">
+                    <div class="text-white fw-boldest fs-3x mb-2">Rp {{ number_format($totalNetWorth, 0, ',', '.') }}</div>
+                    <div class="text-white opacity-75 fw-bold fs-6">Balance as of Today</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Allocation Chart -->
+        <div class="col-xl-4">
+            <div class="card card-flush h-md-100">
+                <div class="card-header pt-7">
+                    <h3 class="card-title align-items-start flex-column">
+                        <span class="card-label fw-bold text-gray-800">Asset Allocation</span>
+                        <span class="text-gray-400 mt-1 fw-semibold fs-6">Distribution by Account</span>
+                    </h3>
+                </div>
+                <div class="card-body pt-2">
+                    <div id="kt_asset_allocation_chart" style="height: 200px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Net Worth Trend placeholder or info -->
+        <div class="col-xl-4">
+            <div class="card card-flush h-md-100">
+                <div class="card-header pt-7">
+                    <h3 class="card-title align-items-start flex-column">
+                        <span class="card-label fw-bold text-gray-800">Growth Tracking</span>
+                        <span class="text-gray-400 mt-1 fw-semibold fs-6">Historical balance trend</span>
+                    </h3>
+                </div>
+                <div class="card-body pt-2 d-flex flex-column justify-content-center">
+                    @if($netWorthHistory->count() < 2)
+                        <div class="text-center px-5">
+                            <i class="ki-duotone ki-chart-line-star fs-3x text-primary mb-5"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i>
+                            <p class="text-gray-600 fw-semibold fs-7">Take snapshots regularly to see your wealth growth chart here over time.</p>
+                        </div>
+                    @else
+                        <div id="kt_net_worth_trend_chart" style="height: 200px;"></div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Snapshot Information Alert --}}
+    <div class="row g-5 g-xl-10 mb-5 mb-xl-10">
+        <div class="col-12">
+            <div class="notice d-flex bg-light-info rounded border-info border border-dashed p-6">
+                <i class="ki-duotone ki-information-5 fs-2tx text-info me-4">
+                    <span class="path1"></span>
+                    <span class="path2"></span>
+                    <span class="path3"></span>
+                </i>
+                <div class="d-flex flex-stack flex-grow-1 flex-wrap flex-md-nowrap">
+                    <div class="mb-3 mb-md-0 fw-semibold">
+                        <h4 class="text-gray-900 fw-bold">Tentang Fitur Snapshot Net Worth</h4>
+                        <div class="fs-6 text-gray-700 pe-7">
+                            <strong>Snapshot</strong> adalah fitur untuk menyimpan "foto" kondisi keuangan Anda pada tanggal tertentu. 
+                            Dengan mengambil snapshot secara rutin, Anda dapat:
+                            <ul class="mt-2 mb-0">
+                                <li><strong>Melihat grafik pertumbuhan</strong> kekayaan bersih dari waktu ke waktu</li>
+                                <li><strong>Tracking progress</strong> terhadap target finansial Anda</li>
+                                <li><strong>Menganalisis tren</strong> naik/turun untuk evaluasi keuangan</li>
+                            </ul>
+                            <div class="mt-3 text-gray-600 fs-7">
+                                <strong>Tips:</strong> Ambil snapshot minimal 1x seminggu atau setiap awal bulan untuk hasil tracking yang optimal. 
+                                Klik tombol <span class="badge badge-light-info">Snapshoot</span> di card Net Worth untuk menyimpan data hari ini.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-5 g-xl-10 mb-2 mb-xl-10">
         <!-- Filter Card -->
         <div class="col-12">
@@ -166,62 +257,98 @@
 
     @push('scripts')
     <script>
-        @if(!$categorySummary->isEmpty())
-        // amCharts 5 implementation
         am5.ready(function() {
-            // Create root element
-            var root = am5.Root.new("kt_summary_category_chart");
+            // --- Asset Allocation Chart ---
+            var rootAsset = am5.Root.new("kt_asset_allocation_chart");
+            rootAsset.setThemes([am5themes_Animated.new(rootAsset)]);
+            var chartAsset = rootAsset.container.children.push(am5percent.PieChart.new(rootAsset, {
+                layout: rootAsset.verticalLayout,
+                innerRadius: am5.percent(70)
+            }));
+            var seriesAsset = chartAsset.series.push(am5percent.PieSeries.new(rootAsset, {
+                valueField: "value",
+                categoryField: "name",
+                alignLabels: false
+            }));
+            seriesAsset.data.setAll(@json($assetAllocation));
+            seriesAsset.labels.template.set("forceHidden", true);
+            seriesAsset.ticks.template.set("forceHidden", true);
+            seriesAsset.appear(1000, 100);
 
-            // Set themes
-            root.setThemes([
-                am5themes_Animated.new(root)
-            ]);
+            // --- Net Worth Trend Chart ---
+            @if($netWorthHistory->count() >= 2)
+            var rootTrend = am5.Root.new("kt_net_worth_trend_chart");
+            rootTrend.setThemes([am5themes_Animated.new(rootTrend)]);
+            var chartTrend = rootTrend.container.children.push(am5xy.XYChart.new(rootTrend, {
+                panX: true,
+                panY: true,
+                wheelX: "panX",
+                wheelY: "zoomX",
+                pinchZoomX: true
+            }));
+            var xAxis = chartTrend.xAxes.push(am5xy.DateAxis.new(rootTrend, {
+                maxDeviation: 0.5,
+                baseInterval: { timeUnit: "day", count: 1 },
+                renderer: am5xy.AxisRendererX.new(rootTrend, { pan:"offset" }),
+                tooltip: am5.Tooltip.new(rootTrend, {})
+            }));
+            var yAxis = chartTrend.yAxes.push(am5xy.ValueAxis.new(rootTrend, {
+                renderer: am5xy.AxisRendererY.new(rootTrend, { pan:"offset" })
+            }));
+            var seriesTrend = chartTrend.series.push(am5xy.LineSeries.new(rootTrend, {
+                name: "Net Worth",
+                xAxis: xAxis,
+                yAxis: yAxis,
+                valueYField: "amount",
+                valueXField: "date",
+                tooltip: am5.Tooltip.new(rootTrend, {
+                    labelText: "Rp {valueY}"
+                })
+            }));
+            seriesTrend.strokes.template.setAll({ strokeWidth: 3 });
+            seriesTrend.data.setAll(@json($netWorthHistory->map(fn($item) => ['date' => strtotime($item['date']) * 1000, 'amount' => $item['amount']])));
+            seriesTrend.appear(1000);
+            chartTrend.appear(1000, 100);
+            @endif
 
-            // Create chart
-            var chart = root.container.children.push(am5percent.PieChart.new(root, {
-                layout: root.verticalLayout,
+            // --- Expenses Category Chart ---
+            @if(!$categorySummary->isEmpty())
+            var rootExpense = am5.Root.new("kt_summary_category_chart");
+            rootExpense.setThemes([am5themes_Animated.new(rootExpense)]);
+            var chartExpense = rootExpense.container.children.push(am5percent.PieChart.new(rootExpense, {
+                layout: rootExpense.verticalLayout,
                 innerRadius: am5.percent(50)
             }));
-
-            // Create series
-            var series = chart.series.push(am5percent.PieSeries.new(root, {
+            var seriesExpense = chartExpense.series.push(am5percent.PieSeries.new(rootExpense, {
                 valueField: "value",
                 categoryField: "category",
                 alignLabels: false
             }));
-
-            series.labels.template.setAll({
-                textType: "circular",
-                centerX: 0,
-                centerY: 0,
-                forceHidden: true
-            });
-
-            series.ticks.template.setAll({
-                forceHidden: true
-            });
-
-            // Set data
-            series.data.setAll([
+            seriesExpense.data.setAll([
                 @foreach($categorySummary as $item)
                 { category: "{{ $item->name }}", value: {{ $item->total }} },
                 @endforeach
             ]);
-
-            // Create legend
-            var legend = chart.children.push(am5.Legend.new(root, {
+            seriesExpense.labels.template.set("forceHidden", true);
+            seriesExpense.ticks.template.set("forceHidden", true);
+            var legendExpense = chartExpense.children.push(am5.Legend.new(rootExpense, {
                 centerX: am5.percent(50),
                 x: am5.percent(50),
                 marginTop: 15,
                 marginBottom: 15
             }));
-
-            legend.data.setAll(series.dataItems);
-
-            // Play initial series animation
-            series.appear(1000, 100);
+            legendExpense.data.setAll(seriesExpense.dataItems);
+            seriesExpense.appear(1000, 100);
+            @endif
         });
-        @endif
+
+        $('#btn_take_snapshot').click(function() {
+            let btn = $(this);
+            btn.addClass('disabled');
+            $.get("{{ route('money-management.summary.net-worth-snapshot') }}", function(res) {
+                Swal.fire({ text: res.success, icon: "success" }).then(() => { window.location.reload(); });
+            });
+        });
     </script>
     @endpush
 </x-default-layout>

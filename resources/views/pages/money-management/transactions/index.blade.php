@@ -87,7 +87,7 @@
                             <select class="form-select form-select-solid" name="investment_id" id="trx_investment" data-control="select2" data-placeholder="Select Portfolio (Optional)">
                                 <option></option>
                                 @foreach($investments as $inv)
-                                    <option value="{{ $inv->id }}">{{ $inv->name }}</option>
+                                    <option value="{{ $inv->id }}">{{ $inv->account_name }}</option>
                                 @endforeach
                             </select>
                             <div class="text-muted fs-7">Uang akan bertambah/berkurang dari portofolio yang dipilih.</div>
@@ -141,7 +141,7 @@
                     {data: 'date', name: 'date'},
                     {data: 'type', name: 'type'},
                     {data: 'category_name', name: 'category.name'},
-                    {data: 'investment_name', name: 'investment.name'},
+                    {data: 'investment_name', name: 'portfolio.account_name'},
                     {data: 'amount', name: 'amount'},
                     {data: 'description', name: 'description'},
                     {data: 'action', name: 'action', orderable: false, searchable: false, className: "text-end"},

@@ -34,11 +34,37 @@ return [
             'label' => 'Transactions',
             'type' => 'item',
             'route' => 'money-management.transactions.index',
-            'active' => ['money-management.transactions.index'],
+            'active' => ['money-management.transactions.index', 'money-management.recurring.index'],
             'permission' => ['money-management'],
             'permissionType' => 'gate',
             'icon' => 'ki',
-            'iconName' => 'dollar'
+            'iconName' => 'dollar',
+            'children' => [
+                [
+                    'label' => 'Transactions History',
+                    'type' => 'item',
+                    'route' => 'money-management.transactions.index',
+                    'active' => ['money-management.transactions.index'],
+                    'icon' => 'dot',
+                ],
+                [
+                    'label' => 'Recurring (Automation)',
+                    'type' => 'item',
+                    'route' => 'money-management.recurring.index',
+                    'active' => ['money-management.recurring.index'],
+                    'icon' => 'dot',
+                ]
+            ]
+        ],
+        [
+            'label' => 'Monthly Budgets',
+            'type' => 'item',
+            'route' => 'money-management.budgets.index',
+            'active' => ['money-management.budgets.index'],
+            'permission' => ['money-management'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'chart-line-up-2'
         ],
         [
             'label' => 'Summary',
@@ -125,13 +151,16 @@ return [
         [
             'label' => 'Master Data',
             'type' => 'heading',
-            'permission' => ['master_data']
+            'permission' => ['master_data'],
+            'permissionType' => 'gate',
         ],
         [
             'label' => 'Management',
             'type' => 'item',
             'icon' => 'ki',
             'iconName' => 'setting',
+            'permission' => ['master_data'],
+            'permissionType' => 'gate',
             'children' => [
                 [
                     'label' => 'User Management',
