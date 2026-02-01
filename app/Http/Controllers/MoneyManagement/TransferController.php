@@ -22,6 +22,7 @@ class TransferController extends Controller
     {
         $data = FinanceTransaction::where('user_id', auth()->id())
             ->where('type', 'transfer')
+            ->where('amount', '<', 0) // Only show the sender side to avoid duplicate lines
             ->with(['portfolio', 'destinationPortfolio'])
             ->orderBy('date', 'desc')
             ->orderBy('created_at', 'desc');
@@ -38,7 +39,7 @@ class TransferController extends Controller
                 return $row->destinationPortfolio->account_name ?? '-';
             })
             ->editColumn('amount', function($row) {
-                return 'Rp ' . number_format($row->amount, 0, ',', '.');
+                return 'Rp ' . number_format(abs($row->amount), 0, ',', '.');
             })
             ->addColumn('action', function($row){
                 $btn = '<button data-id="'.$row->id.'" class="btn btn-icon btn-active-light-danger w-30px h-30px delete-transfer-btn"><i class="ki-duotone ki-trash fs-3"><span class="path1"></span><span class="path2"></span><span class="path3"></span><span class="path4"></span><span class="path5"></span></i></button>';

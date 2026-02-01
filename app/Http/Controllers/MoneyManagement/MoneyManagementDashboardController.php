@@ -148,7 +148,7 @@ class MoneyManagementDashboardController extends Controller
 
         // 4. Recent Transactions (From cycle start)
         $recentTransactions = FinanceTransaction::where('user_id', $userId)
-            ->whereIn('type', ['income', 'expense'])
+            ->whereIn('type', ['income', 'expense', 'transfer'])
             ->whereBetween('date', [$cycleStartDate, $endDate])
             ->with(['category', 'portfolio'])
             ->orderBy('date', 'desc')

@@ -66,7 +66,7 @@
                                 <select class="form-select form-select-solid" name="from_account_id" data-control="select2" data-dropdown-parent="#modal_transfer" data-placeholder="Source Account" required>
                                     <option></option>
                                     @foreach($accounts as $acc)
-                                        <option value="{{ $acc->id }}">{{ $acc->name }}</option>
+                                        <option value="{{ $acc->id }}">{{ $acc->account_name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -75,7 +75,7 @@
                                 <select class="form-select form-select-solid" name="to_account_id" data-control="select2" data-dropdown-parent="#modal_transfer" data-placeholder="Destination Account" required>
                                     <option></option>
                                     @foreach($accounts as $acc)
-                                        <option value="{{ $acc->id }}">{{ $acc->name }}</option>
+                                        <option value="{{ $acc->id }}">{{ $acc->account_name }}</option>
                                     @endforeach
                                 </select>
                             </div>

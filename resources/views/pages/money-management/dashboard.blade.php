@@ -258,14 +258,24 @@
                             <div class="timeline-item">
                                 <div class="timeline-label fw-bold  fs-8">{{ date('d/m', strtotime($trx->date)) }}</div>
                                 <div class="timeline-badge">
-                                    <i class="fa fa-genderless text-{{ $trx->type == 'income' ? 'success' : 'danger' }} fs-1"></i>
+                                    @php
+                                        $color = 'danger';
+                                        if($trx->type == 'income') $color = 'success';
+                                        if($trx->type == 'transfer') $color = 'primary';
+                                    @endphp
+                                    <i class="fa fa-genderless text-{{ $color }} fs-1"></i>
                                 </div>
                                 <div class="timeline-content d-flex align-items-center">
                                     <span class="fw-bold  ps-3 flex-grow-1 fs-7">
                                         {{ $trx->description ?: ($trx->category->name ?? 'Transaction') }}
                                     </span>
-                                    <span class="text-{{ $trx->type == 'income' ? 'success' : 'danger' }} fw-bold fs-7">
-                                        {{ $trx->type == 'income' ? '+' : '-' }} {{ number_format($trx->amount, 0, ',', '.') }}
+                                    @php
+                                        $displayAmount = $trx->amount;
+                                        if($trx->type == 'expense' && $displayAmount > 0) $displayAmount = -$displayAmount;
+                                        $displayColor = $displayAmount >= 0 ? 'success' : 'danger';
+                                    @endphp
+                                    <span class="text-{{ $displayColor }} fw-bold fs-7">
+                                        {{ $displayAmount >= 0 ? '+' : '-' }} Rp {{ number_format(abs($displayAmount), 0, ',', '.') }}
                                     </span>
                                 </div>
                             </div>

@@ -124,7 +124,7 @@ class PortfolioController extends Controller
                         </button>';
                 return $btn;
             })
-            ->rawColumns(['type', 'action'])
+            ->rawColumns(['type', 'amount', 'action'])
             ->make(true);
     }
 

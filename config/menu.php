@@ -7,13 +7,13 @@ return [
 
     'KT_MENUS' => [
         [
-            'label' => 'Dashboard',
+            'label' => 'Apps',
             'type' => 'item',
             'route' => 'dashboard',
             'active' => ['dashboard'],
             'permissionType' => 'gate',
             'icon' => 'ki',
-            'iconName' => 'home',
+            'iconName' => 'abstract-27',
         ],
         [
             'label' => 'Money Management System',
@@ -81,7 +81,7 @@ return [
             'type' => 'item',
             'route' => 'money-management.transfers.index',
             'active' => ['money-management.transfers.index'],
-            'permission' => ['money-management'],
+            'permission' => ['money-management.internal-transfers'],
             'permissionType' => 'gate',
             'icon' => 'ki',
             'iconName' => 'arrows-loop'

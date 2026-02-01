@@ -29,11 +29,11 @@
         <div class="row g-9">
             <div class="col-sm-6 text-center border-end">
                 <div class="fw-bold fs-7 text-gray-500 text-uppercase mb-2">From Account</div>
-                <div class="fw-bolder fs-5 text-gray-800">{{ $transaction->investment->name ?? '-' }}</div>
+                <div class="fw-bolder fs-5 text-gray-800">{{ $transaction->portfolio->account_name ?? '-' }}</div>
             </div>
             <div class="col-sm-6 text-center">
                 <div class="fw-bold fs-7 text-gray-500 text-uppercase mb-2">To Account</div>
-                <div class="fw-bolder fs-5 text-gray-800">{{ $transaction->destinationAccount->name ?? '-' }}</div>
+                <div class="fw-bolder fs-5 text-gray-800">{{ $transaction->destinationPortfolio->account_name ?? '-' }}</div>
             </div>
         </div>
     </div>

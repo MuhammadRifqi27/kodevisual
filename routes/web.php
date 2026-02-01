@@ -84,7 +84,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
             });
 
             // Transfers
-            Route::middleware(['can:money-management.transfers'])->prefix('transfers')->name('transfers.')->group(function() {
+            Route::middleware(['can:money-management.internal-transfers'])->prefix('transfers')->name('transfers.')->group(function() {
                 Route::get('/', [TransferController::class, 'index'])->name('index');
                 Route::get('/datatable', [TransferController::class, 'datatable'])->name('datatable');
                 Route::post('/', [TransferController::class, 'store'])->name('store');
