@@ -7,27 +7,86 @@
         {{ Breadcrumbs::render('money-management') }}
     @endsection
 
+    <div class="row g-5 g-xl-10 mb-5 mb-xl-10">
+        <!-- Filter Card -->
+        <div class="col-12">
+            <div class="card card-flush pt-5 pb-5">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="d-flex flex-column">
+                            <h3 class="card-label fw-bold text-gray-800">Filter Period</h3>
+                            <span class="text-gray-400 mt-1 fw-semibold fs-6">Select month and year to see dashboard stats</span>
+                        </div>
+                    </div>
+                    <div class="card-toolbar">
+                        <form action="{{ route('money-management.dashboard') }}" method="GET" class="d-flex flex-group gap-3 align-items-center">
+                            <select name="month" class="form-select form-select-solid w-150px" data-control="select2" data-hide-search="true">
+                                @foreach(range(1, 12) as $m)
+                                    <option value="{{ sprintf('%02d', $m) }}" {{ $month == sprintf('%02d', $m) ? 'selected' : '' }}>
+                                        {{ date('F', mktime(0, 0, 0, $m, 1)) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <select name="year" class="form-select form-select-solid w-125px" data-control="select2" data-hide-search="true">
+                                @foreach(range(date('Y') - 5, date('Y') + 1) as $y)
+                                    <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!--begin::Row Stats-->
     <div class="row g-5 g-xl-10 mb-5 mb-xl-10">
-        <!--begin::Col-->
+        <!-- Card 1: Total Wealth -->
         <div class="col-md-6 col-lg-6 col-xl-6 col-xxl-3">
             <div class="card card-flush h-md-100">
                 <div class="card-header pt-5">
                     <div class="card-title d-flex flex-column">
-                        <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">Rp {{ number_format($totalBalance, 0, ',', '.') }}</span>
-                        <span class="text-gray-500 pt-1 fw-semibold fs-6">Total Combined Assets</span>
+                        <span class="fs-2hx fw-bold me-2 lh-1 ls-n2">Rp {{ number_format($totalNetWorthAtEnd, 0, ',', '.') }}</span>
+                        <span class="text-muted pt-1 fw-semibold fs-6">Net Worth (Total Harta)</span>
                     </div>
                 </div>
                 <div class="card-body d-flex align-items-end pt-0 pb-6">
                     <div class="d-flex align-items-center flex-column mt-3 w-100">
                         <div class="d-flex justify-content-between w-100 mt-auto mb-2">
-                            <span class="fw-bold fs-6 text-gray-500">Wealth Status</span>
-                            <span class="fw-bold fs-6 text-gray-900">Active</span>
+                            <span class="fw-bold fs-6 text-muted">Aset Aman</span>
+                            <span class="fw-bold fs-6 text-success">Active</span>
                         </div>
                         <div class="h-8px mx-3 w-100 bg-light-success rounded">
-                            <div class="bg-success rounded h-8px" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="bg-success rounded h-8px" role="progressbar" style="width: 100%;"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        <!--end::Col-->
+
+        <!-- Card 2: Rolling Income -->
+        <div class="col-md-6 col-lg-6 col-xl-6 col-xxl-3">
+            <div class="card card-flush h-md-100">
+                <div class="card-header pt-5">
+                    <div class="card-title d-flex flex-column">
+                        <div class="d-flex align-items-center">
+                            <span class="fs-2hx fw-bold me-2 lh-1 ls-n2 text-success">Rp {{ number_format($incomePool, 0, ',', '.') }}</span>
+                        </div>
+                        <span class="text-muted pt-1 fw-semibold fs-6">Income Pool (Last + This Month)</span>
+                    </div>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-end pb-6">
+                    <div class="d-flex flex-column gap-1 mb-2">
+                        @foreach($incomeBreakdown as $inc)
+                            <div class="d-flex flex-stack fs-7">
+                                <span class="text-gray-500 fw-semibold">{{ $inc['name'] }}:</span>
+                                <span class="text-gray-800 fw-bold">Rp {{ number_format($inc['total'], 0, ',', '.') }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                    <span class="text-muted fs-8 font-italic">Includes activity since {{ date('d M Y', strtotime($cycleStartDate)) }}</span>
                 </div>
             </div>
         </div>
@@ -39,39 +98,13 @@
                 <div class="card-header pt-5">
                     <div class="card-title d-flex flex-column">
                         <div class="d-flex align-items-center">
-                            <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">Rp {{ number_format($monthlyIncome, 0, ',', '.') }}</span>
+                            <span class="fs-2hx fw-bold me-2 lh-1 ls-n2">Rp {{ number_format($monthlyExpense, 0, ',', '.') }}</span>
                         </div>
-                        <span class="text-gray-500 pt-1 fw-semibold fs-6">Income this Month</span>
+                        <span class="text-muted pt-1 fw-semibold fs-6">Expense this Month</span>
                     </div>
                 </div>
                 <div class="card-body d-flex flex-column justify-content-end pe-0">
-                    <span class="fs-6 fw-bolder text-gray-800 d-block mb-2">Recent Inflow</span>
-                    <div class="symbol-group symbol-hover">
-                        <div class="symbol symbol-35px symbol-circle" data-bs-toggle="tooltip" title="Salary">
-                            <span class="symbol-label bg-light-success text-success fw-bold">S</span>
-                        </div>
-                        <div class="symbol symbol-35px symbol-circle" data-bs-toggle="tooltip" title="Profit">
-                            <span class="symbol-label bg-light-primary text-primary fw-bold">P</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!--end::Col-->
-
-        <!--begin::Col-->
-        <div class="col-md-6 col-lg-6 col-xl-6 col-xxl-3">
-            <div class="card card-flush h-md-100">
-                <div class="card-header pt-5">
-                    <div class="card-title d-flex flex-column">
-                        <div class="d-flex align-items-center">
-                            <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">Rp {{ number_format($monthlyExpense, 0, ',', '.') }}</span>
-                        </div>
-                        <span class="text-gray-500 pt-1 fw-semibold fs-6">Expense this Month</span>
-                    </div>
-                </div>
-                <div class="card-body d-flex flex-column justify-content-end pe-0">
-                    <span class="fs-6 fw-bolder text-gray-800 d-block mb-2">Top Burning</span>
+                    <span class="fs-6 fw-bolder  d-block mb-2">Top Burning</span>
                     <div class="d-flex align-items-center">
                         @foreach($topExpenses as $expense)
                             <div class="symbol symbol-35px symbol-circle me-2" data-bs-toggle="tooltip" title="{{ $expense['name'] }}: Rp {{ number_format($expense['total'], 0, ',', '.') }}">
@@ -84,26 +117,31 @@
         </div>
         <!--end::Col-->
 
-        <!--begin::Col-->
+        <!-- Card 4: Liquid Bank Balance -->
         <div class="col-md-6 col-lg-6 col-xl-6 col-xxl-3">
-            <div class="card card-flush h-md-100 shadow-sm" style="background-color: {{ $netProfit >= 0 ? '#E8FFF3' : '#FFF5F8' }}">
+           <div class="card card-flush h-md-100 shadow-sm {{ $totalLiquidCash > 0 ? 'bg-light-success' : 'bg-light-primary' }}">
                 <div class="card-header pt-5">
                     <div class="card-title d-flex flex-column">
                         <div class="d-flex align-items-center">
-                            <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">Rp {{ number_format($netProfit, 0, ',', '.') }}</span>
+                            <span class="fs-2hx fw-bold me-2 lh-1 ls-n2">Rp {{ number_format($totalLiquidCash, 0, ',', '.') }}</span>
                         </div>
-                        <span class="text-gray-600 pt-1 fw-semibold fs-6">Net Cashflow (P&L)</span>
+                        <span class="text-muted pt-1 fw-semibold fs-6">Active Balance (Sisa di Bank)</span>
                     </div>
                 </div>
-                <div class="card-body d-flex flex-column justify-content-end">
-                    <div class="d-flex align-items-center fw-bold">
-                        @if($netProfit >= 0)
-                            <i class="ki-duotone ki-trending-up fs-2 text-success me-2"></i>
-                            <span class="text-success fs-7">You are profitable this month!</span>
-                        @else
-                            <i class="ki-duotone ki-trending-down fs-2 text-danger me-2"></i>
-                            <span class="text-danger fs-7">Spending more than earning.</span>
-                        @endif
+                <div class="card-body d-flex flex-column justify-content-end pb-6">
+                    <div class="d-flex flex-column gap-1 mb-2">
+                        @foreach($liquidAccounts as $acc)
+                            <div class="d-flex flex-stack fs-7">
+                                <span class="text-gray-500 fw-semibold">{{ $acc['name'] }}:</span>
+                                <span class="text-gray-800 fw-bold">Rp {{ number_format($acc['balance'], 0, ',', '.') }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                    @php $perf = $incomePool - $monthlyExpense; @endphp
+                    <div class="border-top mt-2 pt-2">
+                        <span class="fs-8 fw-bold {{ $perf >= 0 ? 'text-success' : 'text-danger' }}">
+                            {{ $perf >= 0 ? 'Monthly Profit: +' : 'Monthly Deficit: -' }} Rp {{ number_format(abs($perf), 0, ',', '.') }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -118,8 +156,8 @@
             <div class="card card-flush h-xl-100">
                 <div class="card-header pt-7">
                     <h3 class="card-title align-items-start flex-column">
-                        <span class="card-label fw-bold text-gray-800">Portfolio Distribution</span>
-                        <span class="text-gray-500 mt-1 fw-semibold fs-7">Where your money sits</span>
+                        <span class="card-label fw-bold ">Portfolio Distribution</span>
+                        <span class="text-muted mt-1 fw-semibold fs-7">Where your money sits</span>
                     </h3>
                 </div>
                 <div class="card-body pt-2">
@@ -127,17 +165,43 @@
                         @foreach($portfolioData as $data)
                             <div class="d-flex align-items-center mb-5">
                                 <div class="symbol symbol-40px me-3">
-                                    <span class="symbol-label bg-light-primary">
-                                        <i class="ki-duotone ki-wallet fs-2x text-primary"></i>
+                                    <span class="symbol-label">
+                                        @if($data['name'] == 'BITCOIN')
+                                            <i class="ki-duotone ki-bitcoin fs-2x text-warning"><span class="path1"></span><span class="path2"></span></i>
+                                        @elseif($data['name'] == 'GOLD')
+                                            <i class="ki-duotone ki-ocean fs-2x text-warning">
+                                                <span class="path1"></span>
+                                                <span class="path2"></span>
+                                                <span class="path3"></span>
+                                                <span class="path4"></span>
+                                                <span class="path5"></span>
+                                                <span class="path6"></span>
+                                                <span class="path7"></span>
+                                                <span class="path8"></span>
+                                                <span class="path9"></span>
+                                                <span class="path10"></span>
+                                                <span class="path11"></span>
+                                                <span class="path12"></span>
+                                                <span class="path13"></span>
+                                                <span class="path14"></span>
+                                                <span class="path15"></span>
+                                                <span class="path16"></span>
+                                                <span class="path17"></span>
+                                                <span class="path18"></span>
+                                                <span class="path19"></span>
+                                            </i>
+                                        @else
+                                            <i class="ki-duotone ki-bank fs-2x text-success"><span class="path1"></span><span class="path2"></span></i>
+                                        @endif
                                     </span>
                                 </div>
                                 <div class="d-flex flex-column flex-grow-1">
                                     <a href="#" class="text-gray-800 text-hover-primary fw-bold fs-6">{{ $data['name'] }}</a>
-                                    <span class="text-gray-500 fw-semibold fs-7">Saving Account</span>
+                                    <span class="text-muted fw-semibold fs-7">Saving Account</span>
                                 </div>
                                 <div class="text-end">
-                                    <span class="text-gray-900 fw-bold fs-6">Rp {{ number_format($data['balance'], 0, ',', '.') }}</span>
-                                    <div class="text-gray-500 fs-8">{{ number_format(($data['balance'] / ($totalBalance ?: 1)) * 100, 1) }}%</div>
+                                    <span class="fw-bold fs-6">Rp {{ number_format($data['balance'], 0, ',', '.') }}</span>
+                                    <div class="text-muted fs-8">{{ number_format(($data['balance'] / ($totalNetWorthAtEnd ?: 1)) * 100, 1) }}%</div>
                                 </div>
                             </div>
                         @endforeach
@@ -152,8 +216,8 @@
             <div class="card card-flush h-xl-100">
                 <div class="card-header pt-7">
                     <h3 class="card-title align-items-start flex-column">
-                        <span class="card-label fw-bold text-gray-800">Top Spending</span>
-                        <span class="text-gray-500 mt-1 fw-semibold fs-7">Budget breakdown</span>
+                        <span class="card-label fw-bold ">Top Spending</span>
+                        <span class="text-muted mt-1 fw-semibold fs-7">Budget breakdown</span>
                     </h3>
                 </div>
                 <div class="card-body pt-2">
@@ -165,9 +229,9 @@
                                     <div class="symbol symbol-10px symbol-circle me-3">
                                         <span class="symbol-label bg-danger"></span>
                                     </div>
-                                    <div class="text-gray-800 fw-bold fs-7">{{ $expense['name'] }}</div>
+                                    <div class=" fw-bold fs-7">{{ $expense['name'] }}</div>
                                 </div>
-                                <div class="text-gray-600 fw-semibold fs-8">Rp {{ number_format($expense['total'], 0, ',', '.') }}</div>
+                                <div class="text-muted fw-semibold fs-8">Rp {{ number_format($expense['total'], 0, ',', '.') }}</div>
                             </div>
                         @endforeach
                     </div>
@@ -181,8 +245,8 @@
             <div class="card card-flush h-xl-100">
                 <div class="card-header pt-7">
                     <h3 class="card-title align-items-start flex-column">
-                        <span class="card-label fw-bold text-gray-800">Recent Transactions</span>
-                        <span class="text-gray-500 mt-1 fw-semibold fs-7">Last 10 activities</span>
+                        <span class="card-label fw-bold ">Recent Transactions</span>
+                        <span class="text-muted mt-1 fw-semibold fs-7">Last 10 activities</span>
                     </h3>
                     <div class="card-toolbar">
                         <a href="{{ route('money-management.transactions.index') }}" class="btn btn-sm btn-light-primary">View All</a>
@@ -192,12 +256,12 @@
                     <div class="timeline-label">
                         @foreach($recentTransactions as $trx)
                             <div class="timeline-item">
-                                <div class="timeline-label fw-bold text-gray-800 fs-8">{{ date('d/m', strtotime($trx->date)) }}</div>
+                                <div class="timeline-label fw-bold  fs-8">{{ date('d/m', strtotime($trx->date)) }}</div>
                                 <div class="timeline-badge">
                                     <i class="fa fa-genderless text-{{ $trx->type == 'income' ? 'success' : 'danger' }} fs-1"></i>
                                 </div>
                                 <div class="timeline-content d-flex align-items-center">
-                                    <span class="fw-bold text-gray-800 ps-3 flex-grow-1 fs-7">
+                                    <span class="fw-bold  ps-3 flex-grow-1 fs-7">
                                         {{ $trx->description ?: ($trx->category->name ?? 'Transaction') }}
                                     </span>
                                     <span class="text-{{ $trx->type == 'income' ? 'success' : 'danger' }} fw-bold fs-7">

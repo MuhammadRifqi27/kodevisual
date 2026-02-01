@@ -15,6 +15,7 @@ class FinanceTransaction extends Model
         'type',
         'finance_category_id',
         'finance_investment_id',
+        'to_finance_investment_id',
         'amount',
         'description',
     ];
@@ -32,5 +33,10 @@ class FinanceTransaction extends Model
     public function investment()
     {
         return $this->belongsTo(FinanceInvestment::class, 'finance_investment_id');
+    }
+
+    public function destinationAccount()
+    {
+        return $this->belongsTo(FinanceInvestment::class, 'to_finance_investment_id');
     }
 }

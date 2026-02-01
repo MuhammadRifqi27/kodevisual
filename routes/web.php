@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DetailExpensesController;
@@ -8,6 +9,8 @@ use App\Http\Controllers\MasterCategoryController;
 use App\Http\Controllers\MoneyManagement\MasterDataController;
 use App\Http\Controllers\MoneyManagement\MoneyManagementDashboardController;
 use App\Http\Controllers\MoneyManagement\PortfolioController;
+use App\Http\Controllers\MoneyManagement\TransferController;
+use App\Http\Controllers\MoneyManagement\SummaryController;
 use App\Http\Controllers\MoneyManagement\TransactionController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
@@ -59,6 +62,19 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::delete('/{id}', [TransactionController::class, 'destroy'])->name('destroy');
             });
 
+            // Summary
+            Route::prefix('summary')->name('summary.')->group(function() {
+                Route::get('/', [SummaryController::class, 'index'])->name('index');
+            });
+
+            // Transfers
+            Route::prefix('transfers')->name('transfers.')->group(function() {
+                Route::get('/', [TransferController::class, 'index'])->name('index');
+                Route::get('/datatable', [TransferController::class, 'datatable'])->name('datatable');
+                Route::post('/', [TransferController::class, 'store'])->name('store');
+                Route::delete('/{id}', [TransferController::class, 'destroy'])->name('destroy');
+            });
+
             // Portfolio / Savings
             Route::prefix('portfolio')->name('portfolio.')->group(function() {
                 Route::get('/', [PortfolioController::class, 'index'])->name('index');
@@ -93,8 +109,20 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::post('/investments', [MasterDataController::class, 'storeInvestment'])->name('investments.store');
                 Route::put('/investments/{id}', [MasterDataController::class, 'updateInvestment'])->name('investments.update');
                 Route::delete('/investments/{id}', [MasterDataController::class, 'destroyInvestment'])->name('investments.destroy');
+
+                // Finance Settings
+                Route::get('/settings', [MasterDataController::class, 'settingsIndex'])->name('settings.index');
+                Route::post('/settings', [MasterDataController::class, 'storeSetting'])->name('settings.store');
             });
         });
+    });
+
+
+    // Account Settings
+    Route::prefix('account')->name('account.')->group(function () {
+        Route::get('/settings', [AccountSettingsController::class, 'index'])->name('settings');
+        Route::put('/settings/profile', [AccountSettingsController::class, 'updateProfile'])->name('settings.profile');
+        Route::put('/settings/password', [AccountSettingsController::class, 'updatePassword'])->name('settings.password');
     });
 
     // Admin Routes

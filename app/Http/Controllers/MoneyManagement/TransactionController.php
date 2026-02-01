@@ -19,7 +19,9 @@ class TransactionController extends Controller
 
     public function datatable(Request $request)
     {
-        $data = FinanceTransaction::where('user_id', auth()->id())->with('category');
+        $data = FinanceTransaction::where('user_id', auth()->id())
+            ->whereIn('type', ['income', 'expense']) // Exclude transfers from main list
+            ->with('category');
 
         if ($request->has('type') && $request->type != 'all') {
             $data->where('type', $request->type);
@@ -41,7 +43,8 @@ class TransactionController extends Controller
             })
             ->editColumn('type', function($row) {
                 if($row->type == 'income') return '<span class="badge badge-light-success">Income</span>';
-                return '<span class="badge badge-light-danger">Expense</span>';
+                if($row->type == 'expense') return '<span class="badge badge-light-danger">Expense</span>';
+                return '<span class="badge badge-light-primary">Transfer</span>';
             })
             ->addColumn('action', function($row){
                 $btn = '<button data-id="'.$row->id.'" 

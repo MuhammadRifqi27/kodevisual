@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'role_id',
         'is_approved',
+        'avatar',
     ];
 
     public function role()
@@ -68,4 +69,13 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function getAvatarUrlAttribute()
+    {
+        if ($this->avatar) {
+            return asset('storage/' . $this->avatar);
+        }
+
+        return null;
+    }
 }

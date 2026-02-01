@@ -25,15 +25,17 @@ class PortfolioController extends Controller
         }, 'generalTransactions' => function($query) {
             $query->where('user_id', auth()->id());
         }])->get()->map(function($inv) {
-            // From Specific Investment Transactions
-            $invTrxDeposit = $inv->transactions->whereIn('type', ['deposit', 'profit'])->sum('amount');
-            $invTrxWithdrawal = $inv->transactions->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
+            // From Specific Investment Transactions (deposit, profit, withdrawal, loss)
+            $invTrxIn = $inv->transactions->whereIn('type', ['deposit', 'profit'])->sum('amount');
+            $invTrxOut = $inv->transactions->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
             
-            // From General Transactions
-            $genTrxIncome = $inv->generalTransactions->where('type', 'income')->sum('amount');
-            $genTrxExpense = $inv->generalTransactions->where('type', 'expense')->sum('amount');
+            // From General Transactions (Income is +, Expense is -, Transfer is signed)
+            $genBalance = $inv->generalTransactions->sum(function($trx) {
+                if ($trx->type === 'expense') return -$trx->amount;
+                return $trx->amount; // income and signed transfer
+            });
 
-            $inv->balance = ($invTrxDeposit + $genTrxIncome) - ($invTrxWithdrawal + $genTrxExpense);
+            $inv->balance = ($invTrxIn - $invTrxOut) + $genBalance;
             return $inv;
         });
 
@@ -63,13 +65,15 @@ class PortfolioController extends Controller
         }])->findOrFail($id);
         
         // Calculate Balance
-        $invTrxDeposit = $investment->transactions->whereIn('type', ['deposit', 'profit'])->sum('amount');
-        $invTrxWithdrawal = $investment->transactions->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
+        $invTrxIn = $investment->transactions->whereIn('type', ['deposit', 'profit'])->sum('amount');
+        $invTrxOut = $investment->transactions->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
         
-        $genTrxIncome = $investment->generalTransactions->where('type', 'income')->sum('amount');
-        $genTrxExpense = $investment->generalTransactions->where('type', 'expense')->sum('amount');
+        $genBalance = $investment->generalTransactions->sum(function($trx) {
+            if ($trx->type === 'expense') return -$trx->amount;
+            return $trx->amount;
+        });
 
-        $balance = ($invTrxDeposit + $genTrxIncome) - ($invTrxWithdrawal + $genTrxExpense);
+        $balance = ($invTrxIn - $invTrxOut) + $genBalance;
 
         return view('pages.money-management.portfolio.show', compact('investment', 'balance'));
     }
@@ -92,9 +96,12 @@ class PortfolioController extends Controller
             ->get()
             ->map(function($item) {
                 $item->source_type = 'general';
-                // Map income/expense to deposit/withdrawal names for consistent UI or keep as is
-                // For logic: income is like deposit, expense is like withdrawal
-                $item->display_type = $item->type == 'income' ? 'income' : 'expense';
+                $item->display_type = $item->type;
+                if ($item->type === 'transfer') {
+                    $item->display_amount = $item->amount; // Use signed amount for transfer
+                } else {
+                    $item->display_amount = $item->type === 'expense' ? -$item->amount : $item->amount;
+                }
                 return $item;
             });
 
@@ -107,7 +114,10 @@ class PortfolioController extends Controller
             })
             ->editColumn('type', function($row) {
                 if ($row->source_type == 'general') {
-                    $color = $row->type == 'income' ? 'success' : 'danger';
+                    $color = 'primary';
+                    if($row->type == 'income') $color = 'success';
+                    if($row->type == 'expense') $color = 'danger';
+                    
                     $cat = $row->category ? ' ('.$row->category->name.')' : '';
                     return '<span class="badge badge-light-'.$color.'">'.ucfirst($row->type).$cat.'</span>';
                 }
@@ -118,7 +128,9 @@ class PortfolioController extends Controller
                 return '<span class="badge badge-light-danger">'.ucfirst($row->type).'</span>';
             })
             ->editColumn('amount', function($row) {
-                return 'Rp ' . number_format($row->amount, 0, ',', '.');
+                $amount = $row->source_type == 'general' ? $row->display_amount : $row->amount;
+                $color = $amount < 0 ? 'text-danger' : 'text-success';
+                return '<span class="'.$color.' fw-bold">' . ($amount < 0 ? '-' : '+') . ' Rp ' . number_format(abs($amount), 0, ',', '.') . '</span>';
             })
             ->addColumn('action', function($row){
                 if ($row->source_type == 'general') {

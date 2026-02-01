@@ -41,6 +41,26 @@ return [
             'iconName' => 'dollar'
         ],
         [
+            'label' => 'Summary',
+            'type' => 'item',
+            'route' => 'money-management.summary.index',
+            'active' => ['money-management.summary.index'],
+            'permission' => ['money-management'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'chart-pie-3'
+        ],
+        [
+            'label' => 'Internal Transfers',
+            'type' => 'item',
+            'route' => 'money-management.transfers.index',
+            'active' => ['money-management.transfers.index'],
+            'permission' => ['money-management'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'arrows-loop'
+        ],
+        [
             'label' => 'Portfolio / Savings',
             'type' => 'item',
             'route' => 'money-management.portfolio.index',
@@ -89,6 +109,16 @@ return [
                     'permissionType' => 'gate',
                     'icon' => 'ki',
                     'iconName' => 'chart-line-up',
+                ],
+                [
+                    'label' => 'Finance Settings',
+                    'type' => 'item',
+                    'route' => 'money-management.master-data.settings.index',
+                    'active' => ['money-management.master-data.settings.index'],
+                    'permission' => ['money-management'],
+                    'permissionType' => 'gate',
+                    'icon' => 'ki',
+                    'iconName' => 'setting-2',
                 ]
             ]
         ],

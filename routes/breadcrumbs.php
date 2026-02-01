@@ -12,6 +12,8 @@ Breadcrumbs::for('detail-expenses-rifqi', function (BreadcrumbTrail $trail) {
     $trail->push('Detail Expenses Rifqi', route('financial_summary.detail.expenses'));
 });
 
+
+
 // Money Management
 Breadcrumbs::for('money-management', function (BreadcrumbTrail $trail) {
     $trail->push('Money Management', '#');
@@ -23,10 +25,22 @@ Breadcrumbs::for('money-management.transactions', function (BreadcrumbTrail $tra
     $trail->push('Transactions', route('money-management.transactions.index'));
 });
 
+// Money Management > Transfers
+Breadcrumbs::for('money-management.transfers', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Transfers', route('money-management.transfers.index'));
+});
+
 // Money Management > Portfolio
 Breadcrumbs::for('money-management.portfolio', function (BreadcrumbTrail $trail) {
     $trail->parent('money-management');
     $trail->push('Portfolio & Savings', route('money-management.portfolio.index'));
+});
+
+// Money Management > Summary
+Breadcrumbs::for('money-management.summary', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Summary', route('money-management.summary.index'));
 });
 
 // Money Management > Portfolio > Details
@@ -57,6 +71,12 @@ Breadcrumbs::for('money-management.master-data.income', function (BreadcrumbTrai
 Breadcrumbs::for('money-management.master-data.investments', function (BreadcrumbTrail $trail) {
     $trail->parent('money-management.master-data');
     $trail->push('Investments', route('money-management.master-data.investments.index'));
+});
+
+// Money Management > Master Data > Settings
+Breadcrumbs::for('money-management.master-data.settings', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management.master-data');
+    $trail->push('Finance Settings', route('money-management.master-data.settings.index'));
 });
 // Dashboard > Default
 Breadcrumbs::for('dashboard.default', function (BreadcrumbTrail $trail) {
@@ -191,8 +211,8 @@ Breadcrumbs::for('account.overview', function (BreadcrumbTrail $trail) {
 });
 // Account > Settings
 Breadcrumbs::for('account.settings', function (BreadcrumbTrail $trail) {
-    $trail->parent('account');
-    $trail->push('Settings', route('example.account.settings'));
+    $trail->push('Account', '#');
+    $trail->push('Settings', route('account.settings'));
 });
 // Account > Security
 Breadcrumbs::for('account.security', function (BreadcrumbTrail $trail) {

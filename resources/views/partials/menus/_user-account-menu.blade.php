@@ -6,13 +6,13 @@
             <!--begin::Avatar-->
 
             <div class="symbol symbol-50px me-5">
-
-                <div class="symbol-label fs-3 {{ app(\App\Actions\GetThemeType::class)->handle('bg-light-? text-?', 'Administrator') }}">
-
-                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) ?? 'A' }}
-
-                </div>
-
+                @if(auth()->user()->avatar)
+                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" />
+                @else
+                    <div class="symbol-label fs-3 {{ app(\App\Actions\GetThemeType::class)->handle('bg-light-? text-?', 'Administrator') }}">
+                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) ?? 'A' }}
+                    </div>
+                @endif
             </div>
 
             <!--end::Avatar-->
@@ -126,7 +126,7 @@
     <!--end::Menu item-->
     <!--begin::Menu item-->
     <div class="menu-item px-5 my-1">
-        <a href="#" class="menu-link px-5">Account Settings</a>
+        <a href="{{ route('account.settings') }}" class="menu-link px-5">Account Settings</a>
     </div>
     <!--end::Menu item-->
     <!--begin::Menu item-->

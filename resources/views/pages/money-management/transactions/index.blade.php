@@ -145,7 +145,8 @@
                     {data: 'amount', name: 'amount'},
                     {data: 'description', name: 'description'},
                     {data: 'action', name: 'action', orderable: false, searchable: false, className: "text-end"},
-                ]
+                ],
+                order: [[1, 'desc']],
             });
 
             // Refresh table on filter change

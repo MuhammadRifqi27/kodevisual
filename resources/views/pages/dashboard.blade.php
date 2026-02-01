@@ -1,94 +1,87 @@
 <x-default-layout>
-
     @section('title')
-    Dashboard testing
+        Dashboard Application
     @endsection
 
     @section('breadcrumbs')
-    {{ Breadcrumbs::render('dashboard.default') }}
+        {{ Breadcrumbs::render('dashboard') }}
     @endsection
 
-    <!--begin::Row-->
-    <div class="row g-5 g-xl-10 mb-5 mb-xl-10">
-        <!--begin::Col-->
-        <div class="col-md-6 col-lg-6 col-xl-6 col-xxl-3 mb-md-5 mb-xl-10">
-            @include('partials/widgets/cards/_widget-20')
+    <div class="row g-7">
+        @foreach ($laporan_list as $laporan)
+            @can($laporan['permission'])
+                <div class="col-md-4 col-xl-3">
+                    <a href="{{ route($laporan['route']) }}" class="card card-laporan border-0 h-100 text-decoration-none">
+                        <div class="card-body d-flex flex-column align-items-center text-center p-9">
+                            <!-- Icon Display -->
+                            <div class="laporan-icon-wrapper mb-7 shadow-sm">
+                                <i class="{{ $laporan['icon'] ?? 'ki-outline ki-file-text' }} fs-2hx text-success"></i>
+                            </div>
 
-            @include('partials/widgets/cards/_widget-7')
-        </div>
-        <!--end::Col-->
-        <!--begin::Col-->
-        <div class="col-md-6 col-lg-6 col-xl-6 col-xxl-3 mb-md-5 mb-xl-10">
-            @include('partials/widgets/cards/_widget-17')
+                            <!-- Title -->
+                            <h3 class="card-title fw-bold text-gray-800 fs-4 mb-2">
+                                {{ $laporan['nama'] }}
+                            </h3>
+                            
+                            <p class="text-gray-500 fw-semibold fs-7 mb-7">
+                                {{ $laporan['description'] }}
+                            </p>
 
-            @include('partials/widgets/lists/_widget-26')
-        </div>
-        <!--end::Col-->
-        <!--begin::Col-->
-        <div class="col-xxl-6">
-            @include('partials/widgets/engage/_widget-10')
-        </div>
-        <!--end::Col-->
+                            <!-- Footer/Action -->
+                            <div class="mt-auto w-100">
+                                <span class="btn btn-sm btn-light-success fw-bold px-4 py-2 w-100">
+                                    <i class="ki-outline ki-eye fs-5 me-1"></i> {{ $laporan['btn'] }}
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            @endcan
+        @endforeach
     </div>
-    <!--end::Row-->
 
-    <!--begin::Row-->
-    <div class="row gx-5 gx-xl-10">
-        <!--begin::Col-->
-        <div class="col-xxl-6 mb-5 mb-xl-10">
-            @include('partials/widgets/charts/_widget-8')
-        </div>
-        <!--end::Col-->
-        <!--begin::Col-->
-        <div class="col-xl-6 mb-5 mb-xl-10">
-            @include('partials/widgets/tables/_widget-16')
-        </div>
-        <!--end::Col-->
-    </div>
-    <!--end::Row-->
+    @push('styles')
+        <style>
+            .card-laporan {
+                background-color: #ffffff;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                border-radius: 20px !important;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03) !important;
+            }
 
-    <!--begin::Row-->
-    <div class="row g-5 g-xl-10 mb-5 mb-xl-10">
-        <!--begin::Col-->
-        <div class="col-xxl-6">
-            @include('partials/widgets/cards/_widget-18')
-        </div>
-        <!--end::Col-->
-        <!--begin::Col-->
-        <div class="col-xl-6">
-            @include('partials/widgets/charts/_widget-36')
-        </div>
-        <!--end::Col-->
-    </div>
-    <!--end::Row-->
+            .card-laporan:hover {
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
+                background-color: #fcfdfe;
+            }
 
-    <!--begin::Row-->
-    <div class="row g-5 g-xl-10 mb-5 mb-xl-10">
-        <!--begin::Col-->
-        <div class="col-xl-4">
-            @include('partials/widgets/charts/_widget-35')
-        </div>
-        <!--end::Col-->
-        <!--begin::Col-->
-        <div class="col-xl-8">
-            @include('partials/widgets/tables/_widget-14')
-        </div>
-        <!--end::Col-->
-    </div>
-    <!--end::Row-->
+            .laporan-icon-wrapper {
+                width: 70px;
+                height: 70px;
+                background: #e1f5ff;
+                border-radius: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s ease;
+            }
 
-    <!--begin::Row-->
-    <div class="row gx-5 gx-xl-10">
-        <!--begin::Col-->
-        <div class="col-xl-4">
-            @include('partials/widgets/charts/_widget-31')
-        </div>
-        <!--end::Col-->
-        <!--begin::Col-->
-        <div class="col-xl-8">
-            @include('partials/widgets/charts/_widget-24')
-        </div>
-        <!--end::Col-->
-    </div>
-    <!--end::Row-->
+            .card-laporan:hover .laporan-icon-wrapper {
+                background: #1c86ff;
+                transform: rotate(5deg) scale(1.1);
+            }
+
+            .card-laporan:hover .laporan-icon-wrapper i {
+                color: #ffffff !important;
+            }
+
+            .btn-light-primary {
+                transition: all 0.3s ease;
+            }
+
+            /* .card-laporan:hover .btn-light-primary {
+                background-color: #009ef7 !important;
+                color: #ffffff !important;
+            } */
+        </style>
+    @endpush
 </x-default-layout>

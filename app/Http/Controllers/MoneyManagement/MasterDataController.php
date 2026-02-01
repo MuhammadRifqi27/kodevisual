@@ -5,6 +5,7 @@ namespace App\Http\Controllers\MoneyManagement;
 use App\Http\Controllers\Controller;
 use App\Models\FinanceCategory;
 use App\Models\FinanceInvestment;
+use App\Models\FinanceSetting;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -155,5 +156,27 @@ class MasterDataController extends Controller
     {
         FinanceInvestment::findOrFail($id)->delete();
         return response()->json(['success' => 'Data investasi berhasil dihapus']);
+    }
+
+    // =========================================================================
+    // FINANCE SETTINGS
+    // =========================================================================
+    public function settingsIndex()
+    {
+        $settings = FinanceSetting::where('user_id', auth()->id())->get()->pluck('value', 'key');
+        return view('pages.money-management.master-data.settings', compact('settings'));
+    }
+
+    public function storeSetting(Request $request)
+    {
+        $userId = auth()->id();
+        foreach ($request->except('_token') as $key => $value) {
+            FinanceSetting::updateOrCreate(
+                ['user_id' => $userId, 'key' => $key],
+                ['value' => $value]
+            );
+        }
+
+        return response()->json(['success' => 'Pengaturan berhasil disimpan']);
     }
 }

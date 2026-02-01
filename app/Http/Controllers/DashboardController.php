@@ -9,6 +9,17 @@ class DashboardController extends Controller
     //
     public function index()
     {
-        return view('pages.dashboard');
+        $laporan_list = [
+            [
+                'nama' => 'Money Management System',
+                'route' => 'money-management.dashboard',
+                'permission' => 'money-management',
+                'description' => 'Aplikasi Manajemen Keuangan',
+                'icon' => 'ki-outline ki-dollar',
+                'btn' => 'Buka Aplikasi'
+            ],
+        ];
+
+        return view('pages.dashboard', compact('laporan_list'));
     }
 }
