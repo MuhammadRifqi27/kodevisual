@@ -61,7 +61,7 @@ class MoneyManagementDashboardController extends Controller
             // Heuristic to separate liquid cash from investments
             $invName = strtoupper($portfolio->investment->name ?? '');
             $invCode = strtoupper($portfolio->investment->code ?? '');
-            $isInvestment = in_array($invName, ['GOLD', 'BITCOIN', 'CRYPTO', 'SAHAM', 'STOCK']) || in_array($invCode, ['XAU', 'BTC', 'ETH']);
+            $isInvestment = in_array($invName, ['GOLD', 'BITCOIN', 'CRYPTO', 'SAHAM', 'STOCK', 'ETHEREUM']) || in_array($invCode, ['XAU', 'BTC', 'ETH']);
             
             if ($isInvestment) {
                 $totalInvestmentValue += $balance;
@@ -100,7 +100,7 @@ class MoneyManagementDashboardController extends Controller
                 'balance' => $untrackedCash
             ];
         }
-
+        
         // 2. Rolling Cycle Stats (from 7 days before month start up to end of month)
         $incomePool = FinanceTransaction::where('user_id', $userId)
             ->where('type', 'income')

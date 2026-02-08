@@ -14,8 +14,9 @@ class TransferController extends Controller
 {
     public function index()
     {
-        $accounts = FinancePortfolio::where('user_id', auth()->id())->get();
-        return view('pages.money-management.transfers.index', compact('accounts'));
+        $accounts = FinancePortfolio::with('investment')->where('user_id', auth()->id())->get();
+        $account_investment = $accounts[0]->investment->name;
+        return view('pages.money-management.transfers.index', compact('accounts', 'account_investment'));
     }
 
     public function datatable()
@@ -33,10 +34,10 @@ class TransferController extends Controller
                 return date('d M Y', strtotime($row->date));
             })
             ->addColumn('from', function($row) {
-                return $row->portfolio->account_name ?? '-';
+                return $row->portfolio->account_name . ' - ' . $row->portfolio->investment->name ?? '-';
             })
             ->addColumn('to', function($row) {
-                return $row->destinationPortfolio->account_name ?? '-';
+                return $row->destinationPortfolio->account_name . ' - ' . $row->destinationPortfolio->investment->name ?? '-';
             })
             ->editColumn('amount', function($row) {
                 return 'Rp ' . number_format(abs($row->amount), 0, ',', '.');
@@ -67,8 +68,8 @@ class TransferController extends Controller
             ['description' => 'System created category for internal transfers']
         );
 
-        $fromAccount = FinancePortfolio::where('user_id', $userId)->findOrFail($request->from_account_id);
-        $toAccount = FinancePortfolio::where('user_id', $userId)->findOrFail($request->to_account_id);
+        $fromAccount = FinancePortfolio::with('investment')->where('user_id', $userId)->findOrFail($request->from_account_id);
+        $toAccount = FinancePortfolio::with('investment')->where('user_id', $userId)->findOrFail($request->to_account_id);
 
         $transactionId = DB::transaction(function() use ($request, $userId, $category, $fromAccount, $toAccount) {
             // 1. Transaction FROM (Outbound)
@@ -80,7 +81,7 @@ class TransferController extends Controller
                 'finance_investment_id' => $request->from_account_id,
                 'to_finance_investment_id' => $request->to_account_id,
                 'amount' => -$request->amount, // Negative
-                'description' => $request->description ?? 'Transfer to ' . $toAccount->account_name,
+                'description' => $request->description ?? 'Transfer to ' . $toAccount->account_name . ' - ' . $toAccount->investment->name,
             ]);
 
             // 2. Transaction TO (Inbound)
@@ -92,7 +93,7 @@ class TransferController extends Controller
                 'finance_investment_id' => $request->to_account_id,
                 'to_finance_investment_id' => $request->from_account_id,
                 'amount' => $request->amount, // Positive
-                'description' => $request->description ?? 'Transfer from ' . $fromAccount->account_name,
+                'description' => $request->description ?? 'Transfer from ' . $fromAccount->account_name . ' - ' . $fromAccount->investment->name,
             ]);
 
             return $from->id;
