@@ -57,7 +57,7 @@
                         @csrf
                         <div class="fv-row mb-7">
                             <label class="required fs-6 fw-semibold mb-2">Platform / Bank Provider</label>
-                            <select name="finance_investment_id" class="form-select form-select-solid" data-control="select2" data-dropdown-parent="#modal_add_portfolio" data-placeholder="Select Provider">
+                            <select name="finance_investment_id" class="form-select form-select-solid" data-control="select2" data-dropdown-parent="#modal_add_portfolio" data-placeholder="Select Provider" data-minimum-results-for-search="0">
                                 <option></option>
                                 @foreach($globalInvestments as $inv)
                                     <option value="{{ $inv->id }}">{{ $inv->name }} ({{ $inv->code }})</option>

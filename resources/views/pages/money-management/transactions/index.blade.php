@@ -22,7 +22,7 @@
             <div class="card-toolbar">
                 <div class="d-flex justify-content-end me-2">
                     <!-- Filter Type -->
-                    <select id="filter_type" class="form-select form-select-solid me-2" data-control="select2" data-hide-search="true">
+                    <select id="filter_type" class="form-select form-select-solid me-2" data-control="select2" data-minimum-results-for-search="0">
                         <option value="all">All Types</option>
                         <option value="income">Income</option>
                         <option value="expense">Expense</option>
@@ -76,7 +76,7 @@
 
                         <div class="fv-row mb-7">
                             <label class="required fs-6 fw-semibold mb-2">Type</label>
-                            <select class="form-select form-select-solid" name="type" id="trx_type" data-control="select2" data-hide-search="true" required>
+                            <select class="form-select form-select-solid" name="type" id="trx_type" data-control="select2" data-dropdown-parent="#modal_transaction" data-minimum-results-for-search="0" required>
                                 <option value="income">Income</option>
                                 <option value="expense" selected>Expense</option>
                             </select>
@@ -84,7 +84,7 @@
 
                         <div class="fv-row mb-7">
                             <label class="fs-6 fw-semibold mb-2">Source/Destination Portofolio</label>
-                            <select class="form-select form-select-solid" name="investment_id" id="trx_investment" data-control="select2" data-placeholder="Select Portfolio (Optional)">
+                            <select class="form-select form-select-solid" name="investment_id" id="trx_investment" data-control="select2" data-placeholder="Select Portfolio (Optional)" data-dropdown-parent="#modal_transaction" data-minimum-results-for-search="0">
                                 <option></option>
                                 @foreach($investments as $inv)
                                     <option value="{{ $inv->id }}">{{ $inv->account_name }}</option>
@@ -95,7 +95,7 @@
 
                         <div class="fv-row mb-7">
                             <label class="required fs-6 fw-semibold mb-2">Category</label>
-                            <select class="form-select form-select-solid" name="category_id" id="trx_category" data-control="select2" data-placeholder="Select Category" required>
+                            <select class="form-select form-select-solid" name="category_id" id="trx_category" data-control="select2" data-placeholder="Select Category" data-dropdown-parent="#modal_transaction" data-minimum-results-for-search="0" required>
                                 <option></option>
                             </select>
                         </div>

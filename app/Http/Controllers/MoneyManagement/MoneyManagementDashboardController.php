@@ -25,16 +25,20 @@ class MoneyManagementDashboardController extends Controller
         // Fetch payroll start day from settings (default to 25)
         $payrollDay = FinanceSetting::where('user_id', $userId)->where('key', 'payroll_start_day')->first()?->value ?? 25;
         
-        // Calculate cycle start date based on the payroll day
-        $prevMonth = (clone $startDate)->subMonth();
-        if ($payrollDay === 'last') {
-            $cycleStartDate = $prevMonth->endOfMonth()->startOfDay();
+        // Calculate cycle dates based on the payroll day
+        if ($payrollDay === 'last' || (int)$payrollDay > 15) {
+            $baseDate = (clone $startDate)->subMonth();
         } else {
-            // Ensure the day doesn't overflow for shorter months (e.g. Day 31 in February)
-            // Selecting 'Day 31' is safe; it will automatically use the last day for shorter months.
-            $dayToUse = min((int)$payrollDay, $prevMonth->daysInMonth);
-            $cycleStartDate = $prevMonth->day($dayToUse)->startOfDay();
+            $baseDate = (clone $startDate);
         }
+
+        if ($payrollDay === 'last') {
+            $cycleStartDate = $baseDate->endOfMonth()->startOfDay();
+        } else {
+            $dayToUse = min((int)$payrollDay, $baseDate->daysInMonth);
+            $cycleStartDate = $baseDate->day($dayToUse)->startOfDay();
+        }
+        $cycleEndDate = (clone $cycleStartDate)->addMonth()->subSecond();
 
         // 1. Calculate Liquid Cash vs Long-term Investments
         $portfolios = \App\Models\FinancePortfolio::where('user_id', $userId)->with('investment')->get();
@@ -45,13 +49,13 @@ class MoneyManagementDashboardController extends Controller
 
         $liquidAccounts = [];
         foreach ($portfolios as $portfolio) {
-            $prevInvIn = FinanceInvestmentTransaction::where('finance_investment_id', $portfolio->id)->where('user_id', $userId)->where('date', '<=', $endDate)->whereIn('type', ['deposit', 'profit'])->sum('amount');
-            $prevInvOut = FinanceInvestmentTransaction::where('finance_investment_id', $portfolio->id)->where('user_id', $userId)->where('date', '<=', $endDate)->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
+            $prevInvIn = FinanceInvestmentTransaction::where('finance_investment_id', $portfolio->id)->where('user_id', $userId)->where('date', '<=', $cycleEndDate)->whereIn('type', ['deposit', 'profit'])->sum('amount');
+            $prevInvOut = FinanceInvestmentTransaction::where('finance_investment_id', $portfolio->id)->where('user_id', $userId)->where('date', '<=', $cycleEndDate)->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
             
             // Calculate General Transactions (Income is +, Expense is -, Transfer is signed)
             $genBalance = FinanceTransaction::where('finance_investment_id', $portfolio->id)
                 ->where('user_id', $userId)
-                ->where('date', '<=', $endDate)
+                ->where('date', '<=', $cycleEndDate)
                 ->select(DB::raw("SUM(CASE WHEN type = 'expense' THEN -amount ELSE amount END) as total"))
                 ->value('total') ?? 0;
             
@@ -78,6 +82,8 @@ class MoneyManagementDashboardController extends Controller
             if ($balance != 0) {
                 $portfolioData[] = [
                     'name' => $portfolio->account_name,
+                    'investment' => $portfolio->investment->name,
+                    'investment-code' => $portfolio->investment->code,
                     'balance' => $balance,
                     'is_investment' => $isInvestment
                 ];
@@ -87,7 +93,7 @@ class MoneyManagementDashboardController extends Controller
         // Transactions NOT linked to any portfolio are considered liquid cash (Uncategorized Cash)
         $untrackedCash = FinanceTransaction::where('user_id', $userId)
             ->whereNull('finance_investment_id')
-            ->where('date', '<=', $endDate)
+            ->where('date', '<=', $cycleEndDate)
             ->select(DB::raw("SUM(CASE WHEN type = 'expense' THEN -amount ELSE amount END) as total"))
             ->value('total') ?? 0;
         
@@ -101,15 +107,15 @@ class MoneyManagementDashboardController extends Controller
             ];
         }
         
-        // 2. Rolling Cycle Stats (from 7 days before month start up to end of month)
+        // 2. Rolling Cycle Stats
         $incomePool = FinanceTransaction::where('user_id', $userId)
             ->where('type', 'income')
-            ->whereBetween('date', [$cycleStartDate, $endDate])
+            ->whereBetween('date', [$cycleStartDate, $cycleEndDate])
             ->sum('amount');
 
         $monthlyExpense = FinanceTransaction::where('user_id', $userId)
             ->where('type', 'expense')
-            ->whereBetween('date', [$cycleStartDate, $endDate])
+            ->whereBetween('date', [$cycleStartDate, $cycleEndDate])
             ->sum('amount');
 
         $netProfit = $incomePool - $monthlyExpense;

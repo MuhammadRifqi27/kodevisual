@@ -1,0 +1,152 @@
+<!--begin::Modal - Add Itinerary-->
+<div class="modal fade" id="kt_modal_add_itinerary" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered mw-650px">
+        <div class="modal-content">
+            <form action="{{ route('travel.itineraries.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="trip_id" value="{{ $trip->id }}">
+                <div class="modal-header">
+                    <h2 class="fw-bold">Add New Activity</h2>
+                    <div class="btn btn-icon btn-sm btn-active-icon-primary" data-bs-dismiss="modal">
+                        <i class="ki-outline ki-cross fs-1"></i>
+                    </div>
+                </div>
+                <div class="modal-body py-10 px-lg-17">
+                    <div class="row g-9 mb-8">
+                        <div class="col-md-12 fv-row">
+                            <label class="required fs-6 fw-semibold mb-2">Planned Date & Time</label>
+                            <div class="position-relative d-flex align-items-center">
+                                <i class="ki-outline ki-calendar-8 fs-3 position-absolute ms-4"></i>
+                                <input type="text" 
+                                    class="form-control form-control-solid ps-12 kt_flatpickr_datetime" placeholder="Select date time..."
+                                    name="datetime"  value="{{ $trip->start_date }}"
+                                    required />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fv-row mb-8">
+                        <label class="required fs-6 fw-semibold mb-2">Activity Name</label>
+                        <input type="text" class="form-control form-control-solid text-gray-900" name="activity" placeholder="e.g. Visit Eiffel Tower" required />
+                    </div>
+                    <div class="fv-row mb-8">
+                        <label class="fs-6 fw-semibold mb-2">Location Venue</label>
+                        <div class="position-relative d-flex align-items-center">
+                            <i class="ki-outline ki-geolocation fs-3 position-absolute ms-4"></i>
+                            <input type="text" class="form-control form-control-solid ps-12" name="location" placeholder="e.g. Champ de Mars, Paris" />
+                        </div>
+                    </div>
+                    <div class="fv-row">
+                        <label class="fs-6 fw-semibold mb-2">Estimated Cost</label>
+                        <div class="input-group input-group-solid">
+                            <span class="input-group-text">{{ $trip->currency }}</span>
+                            <input type="number" class="form-control" name="cost_estimate" placeholder="0" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer flex-center">
+                    <button type="reset" class="btn btn-light me-3" data-bs-dismiss="modal">Discard</button>
+                    <button type="submit" class="btn btn-primary px-10">Add Activity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!--begin::Modal - Add Budget-->
+<div class="modal fade" id="kt_modal_add_budget" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered mw-650px">
+        <div class="modal-content">
+            <form action="{{ route('travel.budgets.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="trip_id" value="{{ $trip->id }}">
+                <div class="modal-header">
+                    <h2 class="fw-bold">Budget Allocation</h2>
+                    <div class="btn btn-icon btn-sm btn-active-icon-primary" data-bs-dismiss="modal">
+                        <i class="ki-outline ki-cross fs-1"></i>
+                    </div>
+                </div>
+                <div class="modal-body py-10 px-lg-17">
+                    <div class="fv-row mb-8">
+                        <label class="required fs-6 fw-semibold mb-2 text-gray-700">Category</label>
+                        <select class="form-select form-select-solid" name="category" data-control="select2" data-placeholder="Choose category" data-dropdown-parent="#kt_modal_add_budget" data-minimum-results-for-search="0" required>
+                            <option value="Transportasi">Transportasi</option>
+                            <option value="Akomodasi">Akomodasi</option>
+                            <option value="Makan & Minum">Makan & Minum</option>
+                            <option value="Wisata & Hiburan">Wisata & Hiburan</option>
+                            <option value="Belanja & Oleh-oleh">Belanja & Oleh-oleh</option>
+                            <option value="Dana Darurat">Dana Darurat</option>
+                        </select>
+                    </div>
+                    <div class="fv-row mb-8">
+                        <label class="required fs-6 fw-semibold mb-2">Allocation Amount</label>
+                        <div class="input-group input-group-solid">
+                            <span class="input-group-text">{{ $trip->currency }}</span>
+                            <input type="number" class="form-control" name="amount" placeholder="0" required />
+                        </div>
+                    </div>
+                    <div class="fv-row">
+                        <label class="fs-6 fw-semibold mb-2">Notes</label>
+                        <textarea class="form-control form-control-solid" name="notes" rows="3" placeholder="Brief explanation of this allocation..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer flex-center">
+                    <button type="submit" class="btn btn-primary px-10">Allocate Budget</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!--begin::Modal - Add Expense-->
+<div class="modal fade" id="kt_modal_add_expense" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered mw-650px">
+        <div class="modal-content">
+            <form action="{{ route('travel.expenses.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="trip_id" value="{{ $trip->id }}">
+                <div class="modal-header">
+                    <h2 class="fw-bold text-danger">Record Real Expense</h2>
+                    <div class="btn btn-icon btn-sm btn-active-icon-danger" data-bs-dismiss="modal">
+                        <i class="ki-outline ki-cross fs-1"></i>
+                    </div>
+                </div>
+                <div class="modal-body py-10 px-lg-17">
+                    <div class="row g-9 mb-8">
+                        <div class="col-md-6 fv-row">
+                             <label class="required fs-6 fw-semibold mb-2">Transaction Date</label>
+                             <div class="position-relative d-flex align-items-center">
+                                <i class="ki-outline ki-calendar-8 fs-3 position-absolute ms-4"></i>
+                                <input type="text" class="form-control form-control-solid ps-12 kt_flatpickr_date" name="date" required value="{{ date('Y-m-d') }}" />
+                             </div>
+                        </div>
+                        <div class="col-md-6 fv-row">
+                            <label class="required fs-6 fw-semibold mb-2">Category</label>
+                            <select class="form-select form-select-solid" name="category" data-control="select2" data-placeholder="Choose category" data-dropdown-parent="#kt_modal_add_expense" data-minimum-results-for-search="0" required>
+                                <option value="Transportasi">Transportasi</option>
+                                <option value="Akomodasi">Akomodasi</option>
+                                <option value="Makan & Minum">Makan & Minum</option>
+                                <option value="Wisata & Hiburan">Wisata & Hiburan</option>
+                                <option value="Belanja & Oleh-oleh">Belanja & Oleh-oleh</option>
+                                <option value="Dana Darurat">Dana Darurat</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="fv-row mb-8">
+                        <label class="required fs-6 fw-semibold mb-2">Reason / Description</label>
+                        <input type="text" class="form-control form-control-solid" name="description" placeholder="e.g. Lunch at Cafe" required />
+                    </div>
+                    <div class="fv-row mb-8">
+                        <label class="required fs-6 fw-semibold mb-2">Amount Spent</label>
+                        <div class="input-group input-group-solid border border-danger border-dashed rounded">
+                            <span class="input-group-text bg-light-danger text-danger fw-bold">{{ $trip->currency }}</span>
+                            <input type="number" class="form-control" name="amount" required />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer flex-center">
+                    <button type="submit" class="btn btn-danger px-10">Record Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

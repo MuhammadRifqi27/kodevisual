@@ -18,6 +18,11 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserApprovalController;
 use App\Http\Controllers\UserAppController;
+use App\Http\Controllers\Travel\TravelDashboardController;
+use App\Http\Controllers\Travel\TravelTripController;
+use App\Http\Controllers\Travel\TravelItineraryController;
+use App\Http\Controllers\Travel\TravelBudgetController;
+use App\Http\Controllers\Travel\TravelExpenseController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -56,6 +61,39 @@ Route::middleware(['auth', 'approved'])->group(function () {
         Route::get('/detailExpensesDatatable', [DetailExpensesRifqiController::class, 'detailExpensesdatatable'])->name('detailExpenses.datatable.rifqi');
     });
     
+
+    Route::middleware(['can:travel-planner.dashboard'])->prefix('travel')->name('travel.')->group(function () {
+        Route::get('/dashboard', [TravelDashboardController::class, 'index'])->name('dashboard');
+
+        // Trips
+        Route::middleware(['can:travel-planner.trips'])->prefix('trips')->name('trips.')->group(function() {
+            Route::get('/', [TravelTripController::class, 'index'])->name('index');
+            Route::get('/create', [TravelTripController::class, 'create'])->name('create');
+            Route::post('/', [TravelTripController::class, 'store'])->name('store');
+            Route::get('/{id}', [TravelTripController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [TravelTripController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [TravelTripController::class, 'update'])->name('update');
+            Route::delete('/{id}', [TravelTripController::class, 'destroy'])->name('destroy');
+        });
+
+        // Itineraries
+        Route::post('/itineraries', [TravelItineraryController::class, 'store'])->name('itineraries.store');
+        Route::delete('/itineraries/{id}', [TravelItineraryController::class, 'destroy'])->name('itineraries.destroy');
+
+        // Budgets
+        Route::middleware(['can:travel-planner.budgets'])->prefix('budgets')->name('budgets.')->group(function() {
+            Route::get('/', [TravelBudgetController::class, 'index'])->name('index');
+            Route::post('/', [TravelBudgetController::class, 'store'])->name('store');
+            Route::delete('/{id}', [TravelBudgetController::class, 'destroy'])->name('destroy');
+        });
+
+        // Expenses
+        Route::middleware(['can:travel-planner.budgets'])->prefix('expenses')->name('expenses.')->group(function() {
+            Route::get('/', [TravelExpenseController::class, 'index'])->name('index');
+            Route::post('/', [TravelExpenseController::class, 'store'])->name('store');
+            Route::delete('/{id}', [TravelExpenseController::class, 'destroy'])->name('destroy');
+        });
+    });
 
     Route::middleware(['can:money-management.dashboard'])->group(function () {
         Route::prefix('money-management')->name('money-management.')->group(function () {

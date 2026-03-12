@@ -21,6 +21,10 @@ class DashboardController extends Controller
                     'route' => 'money-management.dashboard',
                     'icon' => 'ki-outline ki-dollar',
                 ],
+                'travel-planner' => [
+                    'route' => 'travel.dashboard',
+                    'icon' => 'ki-outline ki-map',
+                ],
                 // Add more mappings as new apps are added
             ];
 

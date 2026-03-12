@@ -74,7 +74,7 @@
                         <div class="d-flex align-items-center">
                             <span class="fs-2hx fw-bold me-2 lh-1 ls-n2 text-success">Rp {{ number_format($incomePool, 0, ',', '.') }}</span>
                         </div>
-                        <span class="text-muted pt-1 fw-semibold fs-6">Income Pool (Last + This Month)</span>
+                        <span class="text-muted pt-1 fw-semibold fs-6">Income Pool (Cycle)</span>
                     </div>
                 </div>
                 <div class="card-body d-flex flex-column justify-content-end pb-6">
@@ -100,7 +100,7 @@
                         <div class="d-flex align-items-center">
                             <span class="fs-2hx fw-bold me-2 lh-1 ls-n2">Rp {{ number_format($monthlyExpense, 0, ',', '.') }}</span>
                         </div>
-                        <span class="text-muted pt-1 fw-semibold fs-6">Expense this Month</span>
+                        <span class="text-muted pt-1 fw-semibold fs-6">Expense (Cycle)</span>
                     </div>
                 </div>
                 <div class="card-body d-flex flex-column justify-content-end pe-0">
@@ -166,9 +166,9 @@
                             <div class="d-flex align-items-center mb-5">
                                 <div class="symbol symbol-40px me-3">
                                     <span class="symbol-label">
-                                        @if($data['name'] == 'BITCOIN')
+                                        @if($data['investment'] == 'BITCOIN')
                                             <i class="ki-duotone ki-bitcoin fs-2x text-warning"><span class="path1"></span><span class="path2"></span></i>
-                                        @elseif($data['name'] == 'GOLD')
+                                        @elseif($data['investment'] == 'GOLD')
                                             <i class="ki-duotone ki-ocean fs-2x text-warning">
                                                 <span class="path1"></span>
                                                 <span class="path2"></span>
@@ -196,7 +196,7 @@
                                     </span>
                                 </div>
                                 <div class="d-flex flex-column flex-grow-1">
-                                    <a href="#" class="text-gray-800 text-hover-primary fw-bold fs-6">{{ $data['name'] }}</a>
+                                    <a href="#" class="text-gray-800 text-hover-primary fw-bold fs-6">{{ $data['name'] }} - {{ $data['investment-code'] }}</a>
                                     <span class="text-muted fw-semibold fs-7">Saving Account</span>
                                 </div>
                                 <div class="text-end">

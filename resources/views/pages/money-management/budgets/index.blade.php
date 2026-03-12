@@ -13,7 +13,7 @@
                 <i class="ki-outline ki-notification-bing fs-2hx text-primary me-4 mb-5 mb-sm-0"></i>
                 <div class="d-flex flex-column pe-0 pe-sm-10">
                     <h4 class="fw-bold">Active Payroll Cycle</h4>
-                    <span>This budget tracks spending from <strong>{{ $cycleStartDate->format('d M Y') }}</strong> to <strong>{{ $endDate->format('d M Y') }}</strong> (based on your payroll start day setting).</span>
+                    <span>This budget tracks spending from <strong>{{ $cycleStartDate->format('d M Y') }}</strong> to <strong>{{ $cycleEndDate->format('d M Y') }}</strong> (based on your payroll start day setting).</span>
                 </div>
             </div>
             

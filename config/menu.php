@@ -16,6 +16,55 @@ return [
             'iconName' => 'abstract-27',
         ],
         [
+            'label' => 'Travel Planner',
+            'type' => 'heading',
+            'permission' => ['travel-planner.dashboard'],
+        ],
+        [
+            'label' => 'Dashboard',
+            'type' => 'item',
+            'route' => 'travel.dashboard',
+            'active' => ['travel.dashboard'],
+            'permission' => ['travel-planner.dashboard'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'home'
+        ],
+        [
+            'label' => 'My Trips',
+            'type' => 'item',
+            'route' => 'travel.trips.index',
+            'active' => ['travel.trips.*'],
+            'permission' => ['travel-planner.trips'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'map',
+        ],
+        [
+            'label' => 'Travel Budgeting',
+            'type' => 'item',
+            'route' => 'travel.budgets.index',
+            'active' => ['travel.budgets.*', 'travel.expenses.*'],
+            'permission' => ['travel-planner.budgets'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'dollar',
+            'children' => [
+                [
+                    'label' => 'Budget Plans',
+                    'type' => 'item',
+                    'route' => 'travel.budgets.index',
+                    'icon' => 'dot',
+                ],
+                [
+                    'label' => 'Expenses Tracker',
+                    'type' => 'item',
+                    'route' => 'travel.expenses.index',
+                    'icon' => 'dot',
+                ],
+            ]
+        ],
+        [
             'label' => 'Money Management System',
             'type' => 'heading',
             'permission' => ['money-management.dashboard'],

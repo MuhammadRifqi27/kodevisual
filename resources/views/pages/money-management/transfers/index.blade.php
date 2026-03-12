@@ -63,7 +63,7 @@
                         <div class="row g-9 mb-7">
                             <div class="col-md-6 fv-row">
                                 <label class="required fs-6 fw-semibold mb-2">From Account</label>
-                                <select class="form-select form-select-solid" name="from_account_id" data-control="select2" data-dropdown-parent="#modal_transfer" data-placeholder="Source Account" required>
+                                <select class="form-select form-select-solid" name="from_account_id" data-control="select2" data-dropdown-parent="#modal_transfer" data-placeholder="Source Account" data-minimum-results-for-search="0" required>
                                     <option></option>
                                     @foreach($accounts as $acc)
                                         <option value="{{ $acc->id }}">{{ $acc->account_name }} - {{ $acc->investment->name }}</option>
@@ -72,7 +72,7 @@
                             </div>
                             <div class="col-md-6 fv-row">
                                 <label class="required fs-6 fw-semibold mb-2">To Account</label>
-                                <select class="form-select form-select-solid" name="to_account_id" data-control="select2" data-dropdown-parent="#modal_transfer" data-placeholder="Destination Account" required>
+                                <select class="form-select form-select-solid" name="to_account_id" data-control="select2" data-dropdown-parent="#modal_transfer" data-placeholder="Destination Account" data-minimum-results-for-search="0" required>
                                     <option></option>
                                     @foreach($accounts as $acc)
                                         <option value="{{ $acc->id }}">{{ $acc->account_name }} - {{ $acc->investment->name }}</option>

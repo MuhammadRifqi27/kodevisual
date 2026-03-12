@@ -57,19 +57,25 @@ class SummaryController extends Controller
         // Fetch payroll start day from settings (default to 25)
         $payrollDay = FinanceSetting::where('user_id', $userId)->where('key', 'payroll_start_day')->first()?->value ?? 25;
         
-        // Calculate current cycle start date based on the payroll day
-        $prevMonth = (clone $startDate)->subMonth();
-        if ($payrollDay === 'last') {
-            $cycleStartDate = $prevMonth->endOfMonth()->startOfDay();
+        // Calculate current cycle dates based on the payroll day
+        if ($payrollDay === 'last' || (int)$payrollDay > 15) {
+            $baseDate = (clone $startDate)->subMonth();
         } else {
-            $dayToUse = min((int)$payrollDay, $prevMonth->daysInMonth);
-            $cycleStartDate = $prevMonth->day($dayToUse)->startOfDay();
+            $baseDate = (clone $startDate);
         }
+
+        if ($payrollDay === 'last') {
+            $cycleStartDate = $baseDate->endOfMonth()->startOfDay();
+        } else {
+            $dayToUse = min((int)$payrollDay, $baseDate->daysInMonth);
+            $cycleStartDate = $baseDate->day($dayToUse)->startOfDay();
+        }
+        $cycleEndDate = (clone $cycleStartDate)->addMonth()->subSecond();
 
         // 1. Rekapitulasi per Kategori (Pengeluaran saja) - Using Cycle Period
         $categorySummary = FinanceTransaction::where('finance_transactions.user_id', $userId)
             ->where('finance_transactions.type', 'expense')
-            ->whereBetween('finance_transactions.date', [$cycleStartDate, $endDate])
+            ->whereBetween('finance_transactions.date', [$cycleStartDate, $cycleEndDate])
             ->join('finance_categories', 'finance_transactions.finance_category_id', '=', 'finance_categories.id')
             ->select('finance_categories.name', DB::raw('SUM(finance_transactions.amount) as total'))
             ->groupBy('finance_categories.name')
@@ -78,7 +84,7 @@ class SummaryController extends Controller
 
         // 2. Total Income vs Expense bulan ini - Using Cycle Period
         $monthlyStats = FinanceTransaction::where('user_id', $userId)
-            ->whereBetween('date', [$cycleStartDate, $endDate])
+            ->whereBetween('date', [$cycleStartDate, $cycleEndDate])
             ->whereIn('type', ['income', 'expense'])
             ->select('type', DB::raw('SUM(amount) as total'))
             ->groupBy('type')
@@ -89,17 +95,14 @@ class SummaryController extends Controller
         $netProfit = $totalIncome - $totalExpense;
 
         // 3. Perbandingan dengan Bulan Lalu (Previous Cycle)
-        // Last cycle end is just before the current cycle starts
-        $lastCycleEnd = (clone $cycleStartDate)->subSecond();
-        
-        // Last cycle start is the payroll day of 2 months ago
-        $twoMonthsAgo = (clone $startDate)->subMonths(2);
+        $prevCycleBaseDate = (clone $baseDate)->subMonth();
         if ($payrollDay === 'last') {
-            $lastCycleStart = $twoMonthsAgo->endOfMonth()->startOfDay();
+            $lastCycleStart = $prevCycleBaseDate->endOfMonth()->startOfDay();
         } else {
-            $dayToUseLast = min((int)$payrollDay, $twoMonthsAgo->daysInMonth);
-            $lastCycleStart = $twoMonthsAgo->day($dayToUseLast)->startOfDay();
+            $dayToUseLast = min((int)$payrollDay, $prevCycleBaseDate->daysInMonth);
+            $lastCycleStart = $prevCycleBaseDate->day($dayToUseLast)->startOfDay();
         }
+        $lastCycleEnd = (clone $cycleStartDate)->subSecond();
         
         $lastMonthExpense = FinanceTransaction::where('user_id', $userId)
             ->where('type', 'expense')
