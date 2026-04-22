@@ -23,6 +23,7 @@ use App\Http\Controllers\Travel\TravelTripController;
 use App\Http\Controllers\Travel\TravelItineraryController;
 use App\Http\Controllers\Travel\TravelBudgetController;
 use App\Http\Controllers\Travel\TravelExpenseController;
+use App\Http\Controllers\WeddingPlannerController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -154,6 +155,14 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::delete('/transaction/destroy/{id}', [PortfolioController::class, 'destroyTransaction'])->name('transactions.destroy');
             });
         
+            // Wedding
+            Route::prefix('wedding-planner')->name('wedding-planner.')->group(function() {
+                Route::get('/', [WeddingPlannerController::class, 'index'])->name('index');
+                Route::post('/', [WeddingPlannerController::class, 'store'])->name('store');
+                Route::post('/item', [WeddingPlannerController::class, 'storeItem'])->name('item.store');
+                Route::delete('/item/{id}', [WeddingPlannerController::class, 'destroyItem'])->name('item.destroy');
+            });
+
             // Master Data Routes
             Route::prefix('master-data')->name('master-data.')->group(function() {
                 // Category Expenses

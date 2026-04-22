@@ -40,17 +40,19 @@ class SummaryController extends Controller
             ];
         })->values();
 
-        // Net Worth History (Last 6 months)
+        // Net Worth History (Latest 12 snapshots, displayed oldest to newest)
         $netWorthHistory = FinanceNetWorthSnapshot::where('user_id', $userId)
-            ->orderBy('date', 'asc')
+            ->orderBy('date', 'desc')
             ->take(12)
             ->get()
+            ->sortBy('date') // Re-sort ascending so chart flows left→right
             ->map(function($s) {
                 return [
                     'date' => $s->date,
                     'amount' => (float)$s->amount
                 ];
-            });
+            })
+            ->values();
 
         // ... rest of existing logic ...
 

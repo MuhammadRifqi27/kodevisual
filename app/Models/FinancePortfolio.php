@@ -46,12 +46,16 @@ class FinancePortfolio extends Model
         $invTrxIn = $this->transactions()->where('user_id', $userId)->whereIn('type', ['deposit', 'profit'])->sum('amount');
         $invTrxOut = $this->transactions()->where('user_id', $userId)->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
         
-        $genTrx = $this->generalTransactions()->where('user_id', $userId)->get();
+        $genTrx = $this->generalTransactions()->where('user_id', $userId)->whereIn('type', ['income', 'expense'])->get();
         $genBalance = $genTrx->sum(function($trx) {
             if ($trx->type === 'expense') return -$trx->amount;
             return $trx->amount;
         });
+        
+        // Count transfer transactions separately (net zero across all portfolios)
+        $transferIn  = $this->generalTransactions()->where('user_id', $userId)->where('type', 'transfer')->where('amount', '>', 0)->sum('amount');
+        $transferOut = $this->generalTransactions()->where('user_id', $userId)->where('type', 'transfer')->where('amount', '<', 0)->sum('amount');
 
-        return ($invTrxIn - $invTrxOut) + $genBalance;
+        return ($invTrxIn - $invTrxOut) + $genBalance + ($transferIn + $transferOut);
     }
 }

@@ -22,10 +22,18 @@
             <div class="card-toolbar">
                 <div class="d-flex justify-content-end me-2">
                     <!-- Filter Type -->
-                    <select id="filter_type" class="form-select form-select-solid me-2" data-control="select2" data-minimum-results-for-search="0">
+                    <select id="filter_type" class="form-select form-select-solid me-2 w-150px" data-control="select2" data-hide-search="true">
                         <option value="all">All Types</option>
                         <option value="income">Income</option>
                         <option value="expense">Expense</option>
+                    </select>
+
+                    <!-- Filter Category -->
+                    <select id="filter_category" class="form-select form-select-solid me-2 w-200px" data-control="select2" data-placeholder="Select Category">
+                        <option value="all">All Categories</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}">{{ $cat->name }} ({{ ucfirst($cat->type) }})</option>
+                        @endforeach
                     </select>
                 </div>
                 
@@ -134,6 +142,7 @@
                     url: "{{ route('money-management.transactions.datatable') }}",
                     data: function(d) {
                         d.type = $('#filter_type').val();
+                        d.category_id = $('#filter_category').val();
                     }
                 },
                 columns: [
@@ -150,7 +159,7 @@
             });
 
             // Refresh table on filter change
-            $('#filter_type').change(function() {
+            $('#filter_type, #filter_category').change(function() {
                 table.draw();
             });
 

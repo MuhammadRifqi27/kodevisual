@@ -44,23 +44,59 @@
             </div>
         </div>
 
-        <!-- Net Worth Trend placeholder or info -->
+        <!-- Quick Stats / Insights -->
         <div class="col-xl-4">
             <div class="card card-flush h-md-100">
                 <div class="card-header pt-7">
                     <h3 class="card-title align-items-start flex-column">
-                        <span class="card-label fw-bold text-gray-800">Growth Tracking</span>
-                        <span class="text-gray-400 mt-1 fw-semibold fs-6">Historical balance trend</span>
+                        <span class="card-label fw-bold text-gray-800">Financial Insights</span>
+                        <span class="text-gray-400 mt-1 fw-semibold fs-6">Quick overview of your status</span>
                     </h3>
                 </div>
-                <div class="card-body pt-2 d-flex flex-column justify-content-center">
+                <div class="card-body pt-2">
+                    <div class="d-flex flex-column gap-5">
+                        <div class="d-flex flex-stack">
+                            <span class="text-gray-600 fw-semibold">Monthly Profit</span>
+                            <span class="text-{{ $netProfit >= 0 ? 'success' : 'danger' }} fw-bold">Rp {{ number_format($netProfit, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="separator separator-dashed"></div>
+                        <div class="d-flex flex-stack">
+                            <span class="text-gray-600 fw-semibold">Active Portfolios</span>
+                            <span class="text-gray-800 fw-bold">{{ $assetAllocation->count() }} Accounts</span>
+                        </div>
+                        <div class="separator separator-dashed"></div>
+                        <div class="d-flex flex-stack">
+                            <span class="text-gray-600 fw-semibold">Snapshots Taken</span>
+                            <span class="text-gray-800 fw-bold">{{ $netWorthHistory->count() }} Recordings</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Large Growth Tracking Chart -->
+    <div class="row g-5 g-xl-10 mb-5 mb-xl-10">
+        <div class="col-12">
+            <div class="card card-flush h-md-100">
+                <div class="card-header pt-7">
+                    <h3 class="card-title align-items-start flex-column">
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="card-label fw-bold text-gray-800 me-2">Growth Tracking</span>
+                            <span class="badge badge-light-primary fw-bold px-4 py-3">Net Worth Trend</span>
+                        </div>
+                        <span class="text-gray-400 mt-1 fw-semibold fs-6">Historical balance trend across all accounts over time</span>
+                    </h3>
+                </div>
+                <div class="card-body pt-2">
                     @if($netWorthHistory->count() < 2)
-                        <div class="text-center px-5">
+                        <div class="d-flex flex-column flex-center h-400px border border-dashed rounded bg-light">
                             <i class="ki-duotone ki-chart-line-star fs-3x text-primary mb-5"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i>
-                            <p class="text-gray-600 fw-semibold fs-7">Take snapshots regularly to see your wealth growth chart here over time.</p>
+                            <p class="text-gray-600 fw-bold fs-5">Insufficient Data</p>
+                            <p class="text-muted fw-semibold fs-7">Take snapshots regularly to see your wealth growth chart here over time.</p>
                         </div>
                     @else
-                        <div id="kt_net_worth_trend_chart" style="height: 200px;"></div>
+                        <div id="kt_net_worth_trend_chart" style="height: 400px;"></div>
                     @endif
                 </div>
             </div>
@@ -222,7 +258,7 @@
                     <div class="table-responsive">
                         <table class="table align-middle table-row-dashed fs-6 gy-5">
                             <thead>
-                                <tr class="text-start text-muted fw-bold fs-7 text-uppercase gs-0">
+                                <tr class="text-start fw-bold fs-7 text-uppercase gs-0">
                                     <th>Category</th>
                                     <th class="text-end">Total Amount</th>
                                     <th class="text-end">Percentage</th>
@@ -305,8 +341,21 @@
                     labelText: "Rp {valueY}"
                 })
             }));
+            
+            // Add area fill for better visualization
+            seriesTrend.fills.template.setAll({
+                fillOpacity: 0.2,
+                visible: true
+            });
+
             seriesTrend.strokes.template.setAll({ strokeWidth: 3 });
             seriesTrend.data.setAll(@json($netWorthHistory->map(fn($item) => ['date' => strtotime($item['date']) * 1000, 'amount' => $item['amount']])));
+            
+            // Add scrollbar
+            chartTrend.set("scrollbarX", am5.Scrollbar.new(rootTrend, {
+                orientation: "horizontal"
+            }));
+
             seriesTrend.appear(1000);
             chartTrend.appear(1000, 100);
             @endif

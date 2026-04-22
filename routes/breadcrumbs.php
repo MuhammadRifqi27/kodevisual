@@ -85,6 +85,11 @@ Breadcrumbs::for('money-management.master-data.investments', function (Breadcrum
     $trail->push('Investments', route('money-management.master-data.investments.index'));
 });
 
+Breadcrumbs::for('money-management.wedding-planner', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Wedding Planner', route('money-management.wedding-planner.index'));
+});
+
 // Money Management > Master Data > Settings
 Breadcrumbs::for('money-management.master-data.settings', function (BreadcrumbTrail $trail) {
     $trail->parent('money-management.master-data');

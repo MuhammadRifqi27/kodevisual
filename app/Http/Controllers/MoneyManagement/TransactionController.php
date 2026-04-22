@@ -14,7 +14,9 @@ class TransactionController extends Controller
     public function index()
     {
         $investments = FinancePortfolio::where('user_id', auth()->id())->get();
-        return view('pages.money-management.transactions.index', compact('investments'));
+        // Fetch all categories for filter dropdown
+        $categories = FinanceCategory::orderBy('name', 'asc')->get();
+        return view('pages.money-management.transactions.index', compact('investments', 'categories'));
     }
 
     public function datatable(Request $request)
@@ -25,6 +27,10 @@ class TransactionController extends Controller
 
         if ($request->has('type') && $request->type != 'all') {
             $data->where('type', $request->type);
+        }
+
+        if ($request->has('category_id') && $request->category_id != 'all') {
+            $data->where('finance_category_id', $request->category_id);
         }
 
         return Datatables::of($data)
