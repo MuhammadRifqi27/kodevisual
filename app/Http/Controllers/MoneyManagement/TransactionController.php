@@ -33,8 +33,23 @@ class TransactionController extends Controller
             $data->where('finance_category_id', $request->category_id);
         }
 
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $data->whereBetween('date', [$request->start_date, $request->end_date]);
+        }
+
+        // Calculate totals based on the same query
+        $totalIncome = (clone $data)->where('type', 'income')->sum('amount');
+        $totalExpense = (clone $data)->where('type', 'expense')->sum('amount');
+        $netBalance = $totalIncome - $totalExpense;
+
         return Datatables::of($data)
             ->addIndexColumn()
+            ->with([
+                'total_income' => 'Rp ' . number_format($totalIncome, 0, ',', '.'),
+                'total_expense' => 'Rp ' . number_format($totalExpense, 0, ',', '.'),
+                'net_balance' => 'Rp ' . number_format($netBalance, 0, ',', '.'),
+                'net_balance_raw' => $netBalance,
+            ])
             ->editColumn('date', function($row) {
                 return date('d M Y', strtotime($row->date));
             })

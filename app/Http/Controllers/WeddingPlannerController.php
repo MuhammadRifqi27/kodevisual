@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\WeddingPlan;
 use App\Models\WeddingPlannerItem;
+use App\Models\WeddingSavingsTransaction;
+use App\Models\FinancePortfolio;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class WeddingPlannerController extends Controller
 {
@@ -17,6 +20,14 @@ class WeddingPlannerController extends Controller
         );
         
         $items = WeddingPlannerItem::where('user_id', $userId)->get();
+        $savings = WeddingSavingsTransaction::where('user_id', $userId)->orderBy('date', 'desc')->get();
+        $totalSavedManual = $savings->sum('amount');
+
+        // BNI Portfolio Connection
+        $bniPortfolio = FinancePortfolio::where('user_id', $userId)
+            ->where('account_name', 'like', '%Bank BNI%')
+            ->first();
+        $bniBalance = $bniPortfolio ? $bniPortfolio->balance : 0;
         
         // Seed default items if none exist
         if ($items->isEmpty()) {
@@ -41,7 +52,7 @@ class WeddingPlannerController extends Controller
             $items = WeddingPlannerItem::where('user_id', $userId)->get();
         }
 
-        return view('pages.money-management.wedding-planner.index', compact('plan', 'items'));
+        return view('pages.money-management.wedding-planner.index', compact('plan', 'items', 'savings', 'totalSavedManual', 'bniBalance'));
     }
 
     public function store(Request $request)
@@ -99,5 +110,30 @@ class WeddingPlannerController extends Controller
     {
         WeddingPlannerItem::where('user_id', auth()->id())->findOrFail($id)->delete();
         return response()->json(['success' => 'Item berhasil dihapus!']);
+    }
+
+    // New Savings Transaction Methods
+    public function storeSavings(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0',
+            'date' => 'required|date',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        WeddingSavingsTransaction::create([
+            'user_id' => auth()->id(),
+            'amount' => $request->amount,
+            'date' => $request->date,
+            'description' => $request->description,
+        ]);
+
+        return response()->json(['success' => 'Transaksi tabungan berhasil ditambahkan!']);
+    }
+
+    public function destroySavings($id)
+    {
+        WeddingSavingsTransaction::where('user_id', auth()->id())->findOrFail($id)->delete();
+        return response()->json(['success' => 'Transaksi tabungan berhasil dihapus!']);
     }
 }

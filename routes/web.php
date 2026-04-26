@@ -161,6 +161,10 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::post('/', [WeddingPlannerController::class, 'store'])->name('store');
                 Route::post('/item', [WeddingPlannerController::class, 'storeItem'])->name('item.store');
                 Route::delete('/item/{id}', [WeddingPlannerController::class, 'destroyItem'])->name('item.destroy');
+                
+                // Savings Transactions
+                Route::post('/savings', [WeddingPlannerController::class, 'storeSavings'])->name('savings.store');
+                Route::delete('/savings/{id}', [WeddingPlannerController::class, 'destroySavings'])->name('savings.destroy');
             });
 
             // Master Data Routes

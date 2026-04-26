@@ -20,29 +20,44 @@
                 </div>
             </div>
             <div class="card-toolbar">
-                <div class="d-flex justify-content-end me-2">
-                    <!-- Filter Type -->
-                    <select id="filter_type" class="form-select form-select-solid me-2 w-150px" data-control="select2" data-hide-search="true">
-                        <option value="all">All Types</option>
-                        <option value="income">Income</option>
-                        <option value="expense">Expense</option>
-                    </select>
-
-                    <!-- Filter Category -->
-                    <select id="filter_category" class="form-select form-select-solid me-2 w-200px" data-control="select2" data-placeholder="Select Category">
-                        <option value="all">All Categories</option>
-                        @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->name }} ({{ ucfirst($cat->type) }})</option>
-                        @endforeach
-                    </select>
+                <div class="d-flex justify-content-end align-items-center gap-2 gap-md-3">
+                    <!-- Filter Toggle Button -->
+                    <button type="button" class="btn btn-light-info btn-md" id="kt_transaction_filter_drawer_toggle">
+                        <i class="ki-duotone ki-filter fs-2"><span class="path1"></span><span class="path2"></span></i> Filter
+                        <span class="badge badge-circle badge-info ms-2 d-none" id="filter_count_badge">0</span>
+                    </button>
+                    <button type="button" class="btn btn-primary" id="btn_add_transaction">
+                        <i class="ki-duotone ki-plus fs-2"></i> Add
+                    </button>
                 </div>
-                
-                <button type="button" class="btn btn-sm btn-primary" id="btn_add_transaction">
-                    <i class="ki-duotone ki-plus fs-2"></i> Add Transaction
-                </button>
             </div>
         </div>
         <div class="card-body">
+            <!-- Summary Stats -->
+            <div class="row g-5 mb-10 mt-n5">
+                <div class="col-md-4">
+                    <div class="card card-dashed flex-center min-w-175px my-3 p-6 bg-light-success border-success border-dashed">
+                        <span class="fs-4 fw-semibold text-success pb-1 px-2">Total Income</span>
+                        <span class="fs-2tx fw-boldest text-dark" id="stat_total_income">Rp 0</span>
+                        <span class="fs-7 fw-semibold text-dark opacity-50 mt-1 active_period_label">Overall</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-dashed flex-center min-w-175px my-3 p-6 bg-light-danger border-danger border-dashed">
+                        <span class="fs-4 fw-semibold text-danger pb-1 px-2">Total Expense</span>
+                        <span class="fs-2tx fw-boldest text-dark" id="stat_total_expense">Rp 0</span>
+                        <span class="fs-7 fw-semibold text-dark opacity-50 mt-1 active_period_label">Overall</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-dashed flex-center min-w-175px my-3 p-6 bg-light-primary border-primary border-dashed">
+                        <span class="fs-4 fw-semibold text-primary pb-1 px-2">Net Balance</span>
+                        <span class="fs-2tx fw-boldest text-dark" id="stat_net_balance">Rp 0</span>
+                        <span class="fs-7 fw-semibold text-dark opacity-50 mt-1 active_period_label">Overall</span>
+                    </div>
+                </div>
+            </div>
+
             <table class="table align-middle table-row-dashed fs-6 gy-5" id="table_transactions">
                 <thead>
                     <tr class="text-start text-muted fw-bold fs-7 text-uppercase gs-0">
@@ -61,6 +76,71 @@
         </div>
     </div>
     <!--end::Card-->
+
+    <!-- BEGIN::Drawer Filter -->
+    <div
+        id="kt_transaction_filter_drawer"
+        class="bg-white"
+        data-kt-drawer="true"
+        data-kt-drawer-activate="true"
+        data-kt-drawer-toggle="#kt_transaction_filter_drawer_toggle"
+        data-kt-drawer-close="#kt_transaction_filter_drawer_close"
+        data-kt-drawer-width="{default:'300px', 'md': '400px'}"
+        data-kt-drawer-direction="end"
+    >
+        <div class="card w-100 rounded-0 border-0">
+            <div class="card-header pe-5">
+                <div class="card-title">
+                    <div class="d-flex justify-content-center flex-column me-3">
+                        <span class="fs-4 fw-bold text-gray-900 fw-boldest me-1 lh-1">Filter Transactions</span>
+                    </div>
+                </div>
+                <div class="card-toolbar">
+                    <div class="btn btn-sm btn-icon btn-active-light-danger" id="kt_transaction_filter_drawer_close">
+                        <i class="ki-duotone ki-cross fs-2"><span class="path1"></span><span class="path2"></span></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Date Range -->
+                <div class="mb-10">
+                    <label class="form-label fw-bold fs-6 mb-3">Date Range</label>
+                    <div class="position-relative">
+                        <i class="ki-duotone ki-calendar-8 fs-2 position-absolute top-50 translate-middle-y ms-4">
+                            <span class="path1"></span><span class="path2"></span><span class="path3"></span><span class="path4"></span><span class="path5"></span><span class="path6"></span>
+                        </i>
+                        <input class="form-control form-control-solid ps-12" placeholder="Select date range" id="filter_daterange" />
+                    </div>
+                </div>
+
+                <!-- Type -->
+                <div class="mb-10">
+                    <label class="form-label fw-bold fs-6 mb-3">Transaction Type</label>
+                    <select id="filter_type" class="form-select form-select-solid" data-control="select2" data-hide-search="true" data-dropdown-parent="#kt_transaction_filter_drawer">
+                        <option value="all">All Types</option>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                    </select>
+                </div>
+
+                <!-- Category -->
+                <div class="mb-10">
+                    <label class="form-label fw-bold fs-6 mb-3">Category</label>
+                    <select id="filter_category" class="form-select form-select-solid" data-control="select2" data-placeholder="Select Category" data-dropdown-parent="#kt_transaction_filter_drawer">
+                        <option value="all">All Categories</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-end gap-3 py-5">
+                <button type="button" class="btn btn-light" id="btn_reset_filter">Reset</button>
+                <button type="button" class="btn btn-primary" id="btn_apply_filter">Apply Filter</button>
+            </div>
+        </div>
+    </div>
+    <!-- END::Drawer Filter -->
 
     <!-- BEGIN::Modal Transaction -->
     <div class="modal fade" id="modal_transaction" tabindex="-1" aria-hidden="true">
@@ -92,7 +172,7 @@
 
                         <div class="fv-row mb-7">
                             <label class="fs-6 fw-semibold mb-2">Source/Destination Portofolio</label>
-                            <select class="form-select form-select-solid" name="investment_id" id="trx_investment" data-control="select2" data-placeholder="Select Portfolio (Optional)" data-dropdown-parent="#modal_transaction" data-minimum-results-for-search="0">
+                            <select class="form-select form-select-solid" name="investment_id" id="trx_investment" data-control="select2" data-placeholder="Select Portfolio (Optional)" data-dropdown-parent="#modal_transaction" data-minimum-results-for-search="0" required>
                                 <option></option>
                                 @foreach($investments as $inv)
                                     <option value="{{ $inv->id }}">{{ $inv->account_name }}</option>
@@ -143,6 +223,13 @@
                     data: function(d) {
                         d.type = $('#filter_type').val();
                         d.category_id = $('#filter_category').val();
+                        
+                        // Parse daterange from flatpickr
+                        const fp = document.querySelector("#filter_daterange")._flatpickr;
+                        if (fp && fp.selectedDates.length === 2) {
+                            d.start_date = fp.formatDate(fp.selectedDates[0], "Y-m-d");
+                            d.end_date = fp.formatDate(fp.selectedDates[1], "Y-m-d");
+                        }
                     }
                 },
                 columns: [
@@ -156,11 +243,79 @@
                     {data: 'action', name: 'action', orderable: false, searchable: false, className: "text-end"},
                 ],
                 order: [[1, 'desc']],
+                drawCallback: function(settings) {
+                    const json = settings.json;
+                    if (json) {
+                        $('#stat_total_income').text(json.total_income);
+                        $('#stat_total_expense').text(json.total_expense);
+                        $('#stat_net_balance').text(json.net_balance);
+                        
+                        // Dynamic color for net balance
+                        if (json.net_balance_raw < 0) {
+                            $('#stat_net_balance').removeClass('text-dark').addClass('text-danger');
+                        } else {
+                            $('#stat_net_balance').removeClass('text-danger').addClass('text-dark');
+                        }
+                    }
+                }
             });
 
             // Refresh table on filter change
-            $('#filter_type, #filter_category').change(function() {
+            $('#filter_type, #filter_category, #filter_daterange').change(function() {
                 table.draw();
+            });
+
+            // Initialize Flatpickr for daterange
+            const fp = $("#filter_daterange").flatpickr({
+                altInput: true,
+                altFormat: "d M Y",
+                dateFormat: "Y-m-d",
+                mode: "range"
+            });
+
+            // Update filter count badge
+            function updateFilterCount() {
+                let count = 0;
+                if ($('#filter_type').val() !== 'all') count++;
+                if ($('#filter_category').val() !== 'all') count++;
+                if (fp.selectedDates.length === 2) count++;
+                
+                if (count > 0) {
+                    $('#filter_count_badge').text(count).removeClass('d-none');
+                } else {
+                    $('#filter_count_badge').addClass('d-none');
+                }
+            }
+
+            $('#btn_apply_filter').click(function() {
+                updateFilterCount();
+                
+                // Update period label in cards
+                const daterange = $('#filter_daterange').val();
+                if (daterange) {
+                    $('.active_period_label').text(daterange);
+                } else {
+                    $('.active_period_label').text('Overall');
+                }
+
+                table.draw();
+                // Close drawer
+                const drawerElement = document.querySelector("#kt_transaction_filter_drawer");
+                const drawer = KTDrawer.getInstance(drawerElement);
+                drawer.hide();
+            });
+
+            $('#btn_reset_filter').click(function() {
+                $('#filter_type').val('all').trigger('change');
+                $('#filter_category').val('all').trigger('change');
+                fp.clear();
+                $('.active_period_label').text('Overall');
+                updateFilterCount();
+                table.draw();
+                
+                const drawerElement = document.querySelector("#kt_transaction_filter_drawer");
+                const drawer = KTDrawer.getInstance(drawerElement);
+                drawer.hide();
             });
 
             $('#transaction_search').keyup(function(){
@@ -230,9 +385,23 @@
                 $('#modal_transaction').modal('show');
             });
 
+            // Handle Modal Hidden (Reset Form except Date)
+            $('#modal_transaction').on('hidden.bs.modal', function () {
+                const currentDate = $('#trx_date').val();
+                $('#form_transaction')[0].reset();
+                $('#trx_id').val('');
+                $('#trx_type').val('expense').trigger('change');
+                $('#trx_investment').val('').trigger('change');
+                $('#trx_category').val('').trigger('change');
+                $('#trx_date').val(currentDate); // Restore date
+            });
+
             // Submit Form
             $('#form_transaction').submit(function(e) {
                 e.preventDefault();
+                let btn = $(this).find('button[type="submit"]');
+                btn.attr('data-kt-indicator', 'on').prop('disabled', true);
+
                 let formData = new FormData(this);
                 let id = $('#trx_id').val();
                 let url = id ? 
@@ -248,12 +417,27 @@
                     contentType: false,
                     processData: false,
                     success: function(response) {
+                        btn.removeAttr('data-kt-indicator').prop('disabled', false);
                         $('#modal_transaction').modal('hide');
                         table.draw();
                         Swal.fire({ text: response.success, icon: "success", buttonsStyling: false, confirmButtonText: "Ok!", customClass: { confirmButton: "btn btn-primary" } });
                     },
                     error: function(xhr) {
-                        Swal.fire({ text: "Error saving data", icon: "error", buttonsStyling: false, confirmButtonText: "Ok!", customClass: { confirmButton: "btn btn-primary" } });
+                        btn.removeAttr('data-kt-indicator').prop('disabled', false);
+                        let errorMessage = "Error saving data";
+                        if (xhr.responseJSON && xhr.responseJSON.errors) {
+                            errorMessage = Object.values(xhr.responseJSON.errors).flat().join("<br>");
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+
+                        Swal.fire({ 
+                            html: errorMessage, 
+                            icon: "error", 
+                            buttonsStyling: false, 
+                            confirmButtonText: "Ok!", 
+                            customClass: { confirmButton: "btn btn-primary" } 
+                        });
                     }
                 });
             });
