@@ -16,9 +16,7 @@ class SummaryController extends Controller
 {
     public function index(Request $request)
     {
-        addVendor('amcharts');
-        addVendor('amcharts-maps');
-        addVendor('amcharts-stock');
+        addVendor('apex-chart');
         
         $userId = auth()->id();
         $month = $request->get('month', date('m'));
@@ -96,7 +94,40 @@ class SummaryController extends Controller
         $totalExpense = $monthlyStats['expense'] ?? 0;
         $netProfit = $totalIncome - $totalExpense;
 
-        // 3. Perbandingan dengan Bulan Lalu (Previous Cycle)
+        // 3. Monthly Transactions for Chart (Trend from January 2026)
+        $chartData = [];
+        $tempEndDate = (clone $cycleEndDate);
+        $limitDate = Carbon::create(2026, 1, 1)->startOfDay();
+        
+        // Loop as long as the cycle end date is within or after January 2026
+        while ($tempEndDate >= $limitDate) {
+            $cEnd = (clone $tempEndDate);
+            $cStart = (clone $cEnd)->subMonth()->addSecond();
+            
+            $stats = FinanceTransaction::where('user_id', $userId)
+                ->whereBetween('date', [$cStart, $cEnd])
+                ->whereIn('type', ['income', 'expense'])
+                ->select(
+                    DB::raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
+                    DB::raw("SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense")
+                )
+                ->first();
+            
+            $chartData[] = [
+                'date' => $cEnd->format('Y-m-d'), 
+                'label' => $cEnd->format('M Y'),
+                'income' => (float)($stats->income ?? 0),
+                'expense' => (float)($stats->expense ?? 0),
+            ];
+            
+            $tempEndDate = (clone $cStart)->subSecond();
+
+            // Safety break to prevent infinite loop if something goes wrong with dates
+            if (count($chartData) >= 24) break; 
+        }
+        $chartData = collect(array_reverse($chartData));
+
+        // 4. Perbandingan dengan Bulan Lalu (Previous Cycle)
         $prevCycleBaseDate = (clone $baseDate)->subMonth();
         if ($payrollDay === 'last') {
             $lastCycleStart = $prevCycleBaseDate->endOfMonth()->startOfDay();
@@ -111,7 +142,7 @@ class SummaryController extends Controller
             ->whereBetween('date', [$lastCycleStart, $lastCycleEnd])
             ->sum('amount');
 
-        // 4. Smart Advisor Logic
+        // 5. Smart Advisor Logic
         $advice = $this->generateAdvice($totalExpense, $lastMonthExpense, $categorySummary, $netProfit);
 
         return view('pages.money-management.summary.index', compact(
@@ -124,7 +155,8 @@ class SummaryController extends Controller
             'year',
             'totalNetWorth',
             'assetAllocation',
-            'netWorthHistory'
+            'netWorthHistory',
+            'chartData'
         ));
     }
 
