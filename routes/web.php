@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BtcTrackingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DetailExpensesController;
 use App\Http\Controllers\DetailExpensesRifqiController;
@@ -153,6 +154,14 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::post('/transaction/store', [PortfolioController::class, 'storeTransaction'])->name('transactions.store');
                 Route::post('/transaction/update/{id}', [PortfolioController::class, 'updateTransaction'])->name('transactions.update');
                 Route::delete('/transaction/destroy/{id}', [PortfolioController::class, 'destroyTransaction'])->name('transactions.destroy');
+            });
+
+            // Bitcoin Tracking
+            Route::group(['prefix' => 'btc-tracking', 'as' => 'btc-tracking.'], function() {
+                Route::get('/', [BtcTrackingController::class, 'index'])->name('index');
+                Route::get('/datatable', [BtcTrackingController::class, 'datatable'])->name('datatable');
+                Route::post('/store', [BtcTrackingController::class, 'store'])->name('store');
+                Route::delete('/{id}', [BtcTrackingController::class, 'destroy'])->name('destroy');
             });
         
             // Wedding

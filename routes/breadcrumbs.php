@@ -90,6 +90,12 @@ Breadcrumbs::for('money-management.wedding-planner', function (BreadcrumbTrail $
     $trail->push('Wedding Planner', route('money-management.wedding-planner.index'));
 });
 
+// Money Management > Bitcoin Tracking
+Breadcrumbs::for('money-management.btc-tracking', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Bitcoin Tracking', route('money-management.btc-tracking.index'));
+});
+
 // Money Management > Master Data > Settings
 Breadcrumbs::for('money-management.master-data.settings', function (BreadcrumbTrail $trail) {
     $trail->parent('money-management.master-data');

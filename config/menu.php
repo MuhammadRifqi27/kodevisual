@@ -106,6 +106,16 @@ return [
             ]
         ],
         [
+            'label' => 'Bitcoin Tracking',
+            'type' => 'item',
+            'route' => 'money-management.btc-tracking.index',
+            'active' => ['money-management.btc-tracking.index', 'money-management.btc-tracking.show'],
+            'permission' => ['money-management.btc-tracking'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'bitcoin'
+        ],
+        [
             'label' => 'Monthly Budgets',
             'type' => 'item',
             'route' => 'money-management.budgets.index',
