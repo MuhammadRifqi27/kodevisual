@@ -38,40 +38,40 @@
                 <div class="col-md-4">
                     <div class="card card-dashed flex-center min-w-175px my-3 p-6 bg-light-success border-success border-dashed">
                         <span class="fs-4 fw-semibold text-success pb-1 px-2">Total Income</span>
-                        <span class="fs-2tx fw-boldest text-dark" id="stat_total_income">Rp 0</span>
-                        <span class="fs-7 fw-semibold text-dark opacity-50 mt-1 active_period_label">Overall</span>
+                        <span class="fs-2tx fw-boldest" id="stat_total_income">Rp 0</span>
+                        <span class="fs-7 fw-semibold opacity-50 mt-1 active_period_label">Overall</span>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card card-dashed flex-center min-w-175px my-3 p-6 bg-light-danger border-danger border-dashed">
                         <span class="fs-4 fw-semibold text-danger pb-1 px-2">Total Expense</span>
-                        <span class="fs-2tx fw-boldest text-dark" id="stat_total_expense">Rp 0</span>
-                        <span class="fs-7 fw-semibold text-dark opacity-50 mt-1 active_period_label">Overall</span>
+                        <span class="fs-2tx fw-boldest" id="stat_total_expense">Rp 0</span>
+                        <span class="fs-7 fw-semibold opacity-50 mt-1 active_period_label">Overall</span>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card card-dashed flex-center min-w-175px my-3 p-6 bg-light-primary border-primary border-dashed">
                         <span class="fs-4 fw-semibold text-primary pb-1 px-2">Net Balance</span>
-                        <span class="fs-2tx fw-boldest text-dark" id="stat_net_balance">Rp 0</span>
-                        <span class="fs-7 fw-semibold text-dark opacity-50 mt-1 active_period_label">Overall</span>
+                        <span class="fs-2tx fw-boldest" id="stat_net_balance">Rp 0</span>
+                        <span class="fs-7 fw-semibold opacity-50 mt-1 active_period_label">Overall</span>
                     </div>
                 </div>
             </div>
 
-            <table class="table align-middle table-row-dashed fs-6 gy-5" id="table_transactions">
+            <table class="table align-middle table-bordered fs-6 gy-5" id="table_transactions">
                 <thead>
-                    <tr class="text-start text-muted fw-bold fs-7 text-uppercase gs-0">
-                        <th class="min-w-50px">No</th>
-                        <th class="min-w-100px">Date</th>
-                        <th class="min-w-100px">Type</th>
-                        <th class="min-w-150px">Category</th>
-                        <th class="min-w-150px">Account/Portfolio</th>
-                        <th class="min-w-150px">Amount</th>
-                        <th class="min-w-200px">Description</th>
-                        <th class="text-end min-w-100px">Actions</th>
+                    <tr class="fw-bold fs-7 text-uppercase bg-secondary gs-0">
+                        <th class="text-center min-w-50px">No</th>
+                        <th class="text-center min-w-100px">Date</th>
+                        <th class="text-center min-w-100px">Type</th>
+                        <th class="text-center min-w-150px">Category</th>
+                        <th class="text-center min-w-150px">Account/Portfolio</th>
+                        <th class="text-center min-w-150px">Amount</th>
+                        <th class="text-center min-w-200px">Description</th>
+                        <th class="text-center min-w-100px">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="text-gray-600 fw-semibold"></tbody>
+                <tbody class="fw-semibold text-center"></tbody>
             </table>
         </div>
     </div>
@@ -240,7 +240,7 @@
                     {data: 'investment_name', name: 'portfolio.account_name'},
                     {data: 'amount', name: 'amount'},
                     {data: 'description', name: 'description'},
-                    {data: 'action', name: 'action', orderable: false, searchable: false, className: "text-end"},
+                    {data: 'action', name: 'action', orderable: false, searchable: false},
                 ],
                 order: [[1, 'desc']],
                 drawCallback: function(settings) {
@@ -252,9 +252,9 @@
                         
                         // Dynamic color for net balance
                         if (json.net_balance_raw < 0) {
-                            $('#stat_net_balance').removeClass('text-dark').addClass('text-danger');
+                            $('#stat_net_balance').removeClass('text-success').addClass('text-danger');
                         } else {
-                            $('#stat_net_balance').removeClass('text-danger').addClass('text-dark');
+                            $('#stat_net_balance').removeClass('text-danger').addClass('text-success');
                         }
                     }
                 }

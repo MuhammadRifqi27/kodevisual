@@ -43,7 +43,6 @@
     @push('styles')
         <style>
             .card-laporan {
-                background-color: #ffffff;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 border-radius: 20px !important;
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03) !important;
@@ -51,13 +50,12 @@
 
             .card-laporan:hover {
                 box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
-                background-color: #fcfdfe;
             }
 
             .laporan-icon-wrapper {
                 width: 70px;
                 height: 70px;
-                background: #e1f5ff;
+                background: #ffffff;
                 border-radius: 18px;
                 display: flex;
                 align-items: center;
