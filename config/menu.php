@@ -19,6 +19,7 @@ return [
             'label' => 'Travel Planner',
             'type' => 'heading',
             'permission' => ['travel-planner.dashboard'],
+            'permissionType' => 'gate'
         ],
         [
             'label' => 'Dashboard',
@@ -68,6 +69,7 @@ return [
             'label' => 'Money Management System',
             'type' => 'heading',
             'permission' => ['money-management.dashboard'],
+            'permissionType' => 'gate'
         ],
         [
             'label' => 'Dashboard',
