@@ -65,7 +65,7 @@ class MoneyManagementDashboardController extends Controller
             // Heuristic to separate liquid cash from investments
             $invName = strtoupper($portfolio->investment->name ?? '');
             $invCode = strtoupper($portfolio->investment->code ?? '');
-            $isInvestment = in_array($invName, ['GOLD', 'BITCOIN', 'CRYPTO', 'SAHAM', 'STOCK', 'ETHEREUM']) || in_array($invCode, ['XAU', 'BTC', 'ETH']);
+            $isInvestment = in_array($invName, ['GOLD', 'BITCOIN', 'CRYPTO', 'SAHAM', 'STOCKBIT', 'ETHEREUM']) || in_array($invCode, ['XAU', 'BTC', 'ETH']);
             
             if ($isInvestment) {
                 $totalInvestmentValue += $balance;
