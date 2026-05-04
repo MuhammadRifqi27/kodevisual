@@ -19,6 +19,10 @@
                         </div>
                     </div>
                     <div class="card-toolbar">
+                        <!-- Lihat Saldo -->
+                        <button type="button" class="btn btn-light-primary btn-md me-3" id="btn_lihat_saldo">
+                            <i class="ki-duotone ki-eye fs-2"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i> Lihat Saldo
+                        </button>
                         <form action="{{ route('money-management.dashboard') }}" method="GET" class="d-flex flex-group gap-3 align-items-center">
                             <select name="month" class="form-select form-select-solid w-150px" data-control="select2" data-hide-search="true">
                                 @foreach(range(1, 12) as $m)
@@ -47,7 +51,7 @@
             <div class="card card-flush h-md-100">
                 <div class="card-header pt-5">
                     <div class="card-title d-flex flex-column">
-                        <span class="fs-2hx fw-bold me-2 lh-1 ls-n2">Rp {{ number_format($totalNetWorthAtEnd, 0, ',', '.') }}</span>
+                        <span class="fs-2hx fw-bold me-2 lh-1 ls-n2 rupiah-value" data-value="Rp {{ number_format($totalNetWorthAtEnd, 0, ',', '.') }}">******</span>
                         <span class="text-muted pt-1 fw-semibold fs-6">Net Worth (Total Harta)</span>
                     </div>
                 </div>
@@ -72,7 +76,7 @@
                 <div class="card-header pt-5">
                     <div class="card-title d-flex flex-column">
                         <div class="d-flex align-items-center">
-                            <span class="fs-2hx fw-bold me-2 lh-1 ls-n2 text-success">Rp {{ number_format($incomePool, 0, ',', '.') }}</span>
+                            <span class="fs-2hx fw-bold me-2 lh-1 ls-n2 text-success rupiah-value" data-value="Rp {{ number_format($incomePool, 0, ',', '.') }}">******</span>
                         </div>
                         <span class="text-muted pt-1 fw-semibold fs-6">Income Pool (Cycle)</span>
                     </div>
@@ -82,7 +86,7 @@
                         @foreach($incomeBreakdown as $inc)
                             <div class="d-flex flex-stack fs-7">
                                 <span class="text-gray-500 fw-semibold">{{ $inc['name'] }}:</span>
-                                <span class="text-gray-800 fw-bold">Rp {{ number_format($inc['total'], 0, ',', '.') }}</span>
+                                <span class="text-gray-800 fw-bold rupiah-value" data-value="Rp {{ number_format($inc['total'], 0, ',', '.') }}">******</span>
                             </div>
                         @endforeach
                     </div>
@@ -98,7 +102,7 @@
                 <div class="card-header pt-5">
                     <div class="card-title d-flex flex-column">
                         <div class="d-flex align-items-center">
-                            <span class="fs-2hx fw-bold me-2 lh-1 ls-n2">Rp {{ number_format($monthlyExpense, 0, ',', '.') }}</span>
+                            <span class="fs-2hx fw-bold me-2 lh-1 ls-n2 rupiah-value" data-value="Rp {{ number_format($monthlyExpense, 0, ',', '.') }}">******</span>
                         </div>
                         <span class="text-muted pt-1 fw-semibold fs-6">Expense (Cycle)</span>
                     </div>
@@ -107,7 +111,7 @@
                     <span class="fs-6 fw-bolder  d-block mb-2">Top Burning</span>
                     <div class="d-flex align-items-center">
                         @foreach($topExpenses as $expense)
-                            <div class="symbol symbol-35px symbol-circle me-2" data-bs-toggle="tooltip" title="{{ $expense['name'] }}: Rp {{ number_format($expense['total'], 0, ',', '.') }}">
+                            <div class="symbol symbol-35px symbol-circle me-2 rupiah-tooltip" data-bs-toggle="tooltip" data-real-title="{{ $expense['name'] }}: Rp {{ number_format($expense['total'], 0, ',', '.') }}" title="******">
                                 <span class="symbol-label bg-light-danger text-danger fw-bold">{{ substr($expense['name'], 0, 1) }}</span>
                             </div>
                         @endforeach
@@ -123,7 +127,7 @@
                 <div class="card-header pt-5">
                     <div class="card-title d-flex flex-column">
                         <div class="d-flex align-items-center">
-                            <span class="fs-2hx fw-bold me-2 lh-1 ls-n2">Rp {{ number_format($totalLiquidCash, 0, ',', '.') }}</span>
+                            <span class="fs-2hx fw-bold me-2 lh-1 ls-n2 rupiah-value" data-value="Rp {{ number_format($totalLiquidCash, 0, ',', '.') }}">******</span>
                         </div>
                         <span class="text-muted pt-1 fw-semibold fs-6">Active Balance (Sisa di Bank)</span>
                     </div>
@@ -133,14 +137,14 @@
                         @foreach($liquidAccounts as $acc)
                             <div class="d-flex flex-stack fs-7">
                                 <span class="text-gray-500 fw-semibold">{{ $acc['name'] }}:</span>
-                                <span class="text-gray-800 fw-bold">Rp {{ number_format($acc['balance'], 0, ',', '.') }}</span>
+                                <span class="text-gray-800 fw-bold rupiah-value" data-value="Rp {{ number_format($acc['balance'], 0, ',', '.') }}">******</span>
                             </div>
                         @endforeach
                     </div>
                     @php $perf = $incomePool - $monthlyExpense; @endphp
                     <div class="border-top mt-2 pt-2">
                         <span class="fs-8 fw-bold {{ $perf >= 0 ? 'text-success' : 'text-danger' }}">
-                            {{ $perf >= 0 ? 'Monthly Profit: +' : 'Monthly Deficit: -' }} Rp {{ number_format(abs($perf), 0, ',', '.') }}
+                            {{ $perf >= 0 ? 'Monthly Profit: +' : 'Monthly Deficit: -' }} <span class="rupiah-value" data-value="Rp {{ number_format(abs($perf), 0, ',', '.') }}">******</span>
                         </span>
                     </div>
                 </div>
@@ -200,7 +204,7 @@
                                     <span class="text-muted fw-semibold fs-7">Saving Account</span>
                                 </div>
                                 <div class="text-end">
-                                    <span class="fw-bold fs-6">Rp {{ number_format($data['balance'], 0, ',', '.') }}</span>
+                                    <span class="fw-bold fs-6 rupiah-value" data-value="Rp {{ number_format($data['balance'], 0, ',', '.') }}">******</span>
                                     <div class="text-muted fs-8">{{ number_format(($data['balance'] / ($totalNetWorthAtEnd ?: 1)) * 100, 1) }}%</div>
                                 </div>
                             </div>
@@ -231,7 +235,7 @@
                                     </div>
                                     <div class=" fw-bold fs-7">{{ $expense['name'] }}</div>
                                 </div>
-                                <div class="text-muted fw-semibold fs-8">Rp {{ number_format($expense['total'], 0, ',', '.') }}</div>
+                                <div class="text-muted fw-semibold fs-8 rupiah-value" data-value="Rp {{ number_format($expense['total'], 0, ',', '.') }}">******</div>
                             </div>
                         @endforeach
                     </div>
@@ -275,7 +279,7 @@
                                         $displayColor = $displayAmount >= 0 ? 'success' : 'danger';
                                     @endphp
                                     <span class="text-{{ $displayColor }} fw-bold fs-7">
-                                        {{ $displayAmount >= 0 ? '+' : '-' }} Rp {{ number_format(abs($displayAmount), 0, ',', '.') }}
+                                        {{ $displayAmount >= 0 ? '+' : '-' }} <span class="rupiah-value" data-value="Rp {{ number_format(abs($displayAmount), 0, ',', '.') }}">******</span>
                                     </span>
                                 </div>
                             </div>
@@ -312,6 +316,44 @@
 
         $(document).ready(function() {
             initExpenseChart();
+
+            let isSaldoVisible = false;
+
+            function updateSaldoVisibility() {
+                if (isSaldoVisible) {
+                    $('.rupiah-value').each(function() {
+                        $(this).text($(this).attr('data-value'));
+                    });
+                    $('.rupiah-tooltip').each(function() {
+                        const realTitle = $(this).attr('data-real-title');
+                        $(this).attr('title', realTitle).attr('data-bs-original-title', realTitle);
+                        // Re-init tooltip if needed
+                        const tooltip = bootstrap.Tooltip.getInstance(this);
+                        if (tooltip) {
+                            tooltip._fixTitle();
+                        }
+                    });
+                    $('#btn_lihat_saldo').html('<i class="ki-duotone ki-eye-slash fs-2"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i> Tutup Saldo');
+                } else {
+                    $('.rupiah-value').text('******');
+                    $('.rupiah-tooltip').each(function() {
+                        $(this).attr('title', '******').attr('data-bs-original-title', '******');
+                        const tooltip = bootstrap.Tooltip.getInstance(this);
+                        if (tooltip) {
+                            tooltip._fixTitle();
+                        }
+                    });
+                    $('#btn_lihat_saldo').html('<i class="ki-duotone ki-eye fs-2"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i> Lihat Saldo');
+                }
+            }
+
+            $('#btn_lihat_saldo').click(function() {
+                isSaldoVisible = !isSaldoVisible;
+                updateSaldoVisibility();
+            });
+
+            // Initial state
+            updateSaldoVisibility();
         });
     </script>
     @endpush

@@ -21,6 +21,10 @@
             </div>
             <div class="card-toolbar">
                 <div class="d-flex justify-content-end align-items-center gap-2 gap-md-3">
+                    <!-- Lihat Saldo -->
+                    <button type="button" class="btn btn-light-primary btn-md" id="btn_lihat_saldo">
+                        <i class="ki-duotone ki-eye fs-2"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i> Lihat Saldo
+                    </button>
                     <!-- Filter Toggle Button -->
                     <button type="button" class="btn btn-light-info btn-md" id="kt_transaction_filter_drawer_toggle">
                         <i class="ki-duotone ki-filter fs-2"><span class="path1"></span><span class="path2"></span></i> Filter
@@ -38,21 +42,21 @@
                 <div class="col-md-4">
                     <div class="card card-dashed flex-center min-w-175px my-3 p-6 bg-light-success border-success border-dashed">
                         <span class="fs-4 fw-semibold text-success pb-1 px-2">Total Income</span>
-                        <span class="fs-2tx fw-boldest" id="stat_total_income">Rp 0</span>
+                        <span class="fs-2tx fw-boldest" id="stat_total_income">******</span>
                         <span class="fs-7 fw-semibold opacity-50 mt-1 active_period_label">Overall</span>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card card-dashed flex-center min-w-175px my-3 p-6 bg-light-danger border-danger border-dashed">
                         <span class="fs-4 fw-semibold text-danger pb-1 px-2">Total Expense</span>
-                        <span class="fs-2tx fw-boldest" id="stat_total_expense">Rp 0</span>
+                        <span class="fs-2tx fw-boldest" id="stat_total_expense">******</span>
                         <span class="fs-7 fw-semibold opacity-50 mt-1 active_period_label">Overall</span>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card card-dashed flex-center min-w-175px my-3 p-6 bg-light-primary border-primary border-dashed">
                         <span class="fs-4 fw-semibold text-primary pb-1 px-2">Net Balance</span>
-                        <span class="fs-2tx fw-boldest" id="stat_net_balance">Rp 0</span>
+                        <span class="fs-2tx fw-boldest" id="stat_net_balance">******</span>
                         <span class="fs-7 fw-semibold opacity-50 mt-1 active_period_label">Overall</span>
                     </div>
                 </div>
@@ -246,10 +250,12 @@
                 drawCallback: function(settings) {
                     const json = settings.json;
                     if (json) {
-                        $('#stat_total_income').text(json.total_income);
-                        $('#stat_total_expense').text(json.total_expense);
-                        $('#stat_net_balance').text(json.net_balance);
+                        $('#stat_total_income').attr('data-value', json.total_income);
+                        $('#stat_total_expense').attr('data-value', json.total_expense);
+                        $('#stat_net_balance').attr('data-value', json.net_balance);
                         
+                        updateSaldoVisibility();
+
                         // Dynamic color for net balance
                         if (json.net_balance_raw < 0) {
                             $('#stat_net_balance').removeClass('text-success').addClass('text-danger');
@@ -258,6 +264,34 @@
                         }
                     }
                 }
+            });
+
+            let isSaldoVisible = false;
+
+            function updateSaldoVisibility() {
+                const stats = [
+                    { id: '#stat_total_income', default: 'Rp 0' },
+                    { id: '#stat_total_expense', default: 'Rp 0' },
+                    { id: '#stat_net_balance', default: 'Rp 0' }
+                ];
+
+                if (isSaldoVisible) {
+                    stats.forEach(stat => {
+                        const val = $(stat.id).attr('data-value');
+                        $(stat.id).text(val ? val : stat.default);
+                    });
+                    $('#btn_lihat_saldo').html('<i class="ki-duotone ki-eye-slash fs-2"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i> Tutup Saldo');
+                } else {
+                    stats.forEach(stat => {
+                        $(stat.id).text('******');
+                    });
+                    $('#btn_lihat_saldo').html('<i class="ki-duotone ki-eye fs-2"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i> Lihat Saldo');
+                }
+            }
+
+            $('#btn_lihat_saldo').click(function() {
+                isSaldoVisible = !isSaldoVisible;
+                updateSaldoVisibility();
             });
 
             // Refresh table on filter change
