@@ -66,6 +66,7 @@
                 <thead>
                     <tr class="fw-bold fs-7 text-uppercase bg-secondary gs-0">
                         <th class="text-center min-w-50px">No</th>
+                        <th class="text-center min-w-100px">TRX Number</th>
                         <th class="text-center min-w-100px">Date</th>
                         <th class="text-center min-w-100px">Type</th>
                         <th class="text-center min-w-150px">Category</th>
@@ -238,6 +239,7 @@
                 },
                 columns: [
                     {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
+                    {data: 'id', name: 'id'},
                     {data: 'date', name: 'date'},
                     {data: 'type', name: 'type'},
                     {data: 'category_name', name: 'category.name'},
@@ -246,7 +248,7 @@
                     {data: 'description', name: 'description'},
                     {data: 'action', name: 'action', orderable: false, searchable: false},
                 ],
-                order: [[1, 'desc']],
+                order: [[2, 'desc']],
                 drawCallback: function(settings) {
                     const json = settings.json;
                     if (json) {

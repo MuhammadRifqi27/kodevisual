@@ -66,6 +66,32 @@ return [
             ]
         ],
         [
+            'label' => 'Daily Planner',
+            'type' => 'heading',
+            'permission' => ['daily-planner.dashboard'],
+            'permissionType' => 'gate'
+        ],
+        [
+            'label' => 'Dashboard',
+            'type' => 'item',
+            'route' => 'daily-planner.dashboard',
+            'active' => ['daily-planner.dashboard'],
+            'permission' => ['daily-planner.dashboard'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'home'
+        ],
+        [
+            'label' => 'Daily Activity',
+            'type' => 'item',
+            'route' => 'daily-planner.activity',
+            'active' => ['daily-planner.activity'],
+            'permission' => ['daily-planner.activity'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'calendar',
+        ],
+        [
             'label' => 'Money Management System',
             'type' => 'heading',
             'permission' => ['money-management.dashboard'],
@@ -240,7 +266,7 @@ return [
                     'permission' => ['users'],
                     'permissionType' => 'gate',
                     'children' => [
-                         [
+                        [
                             'label' => 'User Approval',
                             'type' => 'item',
                             'route' => 'administrator.user-approval.index',

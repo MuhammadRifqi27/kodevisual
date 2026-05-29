@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BtcTrackingController;
+use App\Http\Controllers\DailyPlannerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DetailExpensesController;
 use App\Http\Controllers\DetailExpensesRifqiController;
@@ -57,18 +58,18 @@ Route::middleware(['auth', 'approved'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    
+
     Route::middleware(['can:financial_summary'])->prefix('financial_summary')->name('financial_summary.')->group(function () {
         Route::get('/detail-expenses-rifqi', [DetailExpensesRifqiController::class, 'index'])->name('detail.expenses');
         Route::get('/detailExpensesDatatable', [DetailExpensesRifqiController::class, 'detailExpensesdatatable'])->name('detailExpenses.datatable.rifqi');
     });
-    
+
 
     Route::middleware(['can:travel-planner.dashboard'])->prefix('travel')->name('travel.')->group(function () {
         Route::get('/dashboard', [TravelDashboardController::class, 'index'])->name('dashboard');
 
         // Trips
-        Route::middleware(['can:travel-planner.trips'])->prefix('trips')->name('trips.')->group(function() {
+        Route::middleware(['can:travel-planner.trips'])->prefix('trips')->name('trips.')->group(function () {
             Route::get('/', [TravelTripController::class, 'index'])->name('index');
             Route::get('/create', [TravelTripController::class, 'create'])->name('create');
             Route::post('/', [TravelTripController::class, 'store'])->name('store');
@@ -83,14 +84,14 @@ Route::middleware(['auth', 'approved'])->group(function () {
         Route::delete('/itineraries/{id}', [TravelItineraryController::class, 'destroy'])->name('itineraries.destroy');
 
         // Budgets
-        Route::middleware(['can:travel-planner.budgets'])->prefix('budgets')->name('budgets.')->group(function() {
+        Route::middleware(['can:travel-planner.budgets'])->prefix('budgets')->name('budgets.')->group(function () {
             Route::get('/', [TravelBudgetController::class, 'index'])->name('index');
             Route::post('/', [TravelBudgetController::class, 'store'])->name('store');
             Route::delete('/{id}', [TravelBudgetController::class, 'destroy'])->name('destroy');
         });
 
         // Expenses
-        Route::middleware(['can:travel-planner.budgets'])->prefix('expenses')->name('expenses.')->group(function() {
+        Route::middleware(['can:travel-planner.budgets'])->prefix('expenses')->name('expenses.')->group(function () {
             Route::get('/', [TravelExpenseController::class, 'index'])->name('index');
             Route::post('/', [TravelExpenseController::class, 'store'])->name('store');
             Route::delete('/{id}', [TravelExpenseController::class, 'destroy'])->name('destroy');
@@ -102,7 +103,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
             Route::get('/dashboard', [MoneyManagementDashboardController::class, 'index'])->name('dashboard');
 
             // Transactions
-            Route::middleware(['can:money-management.transactions'])->prefix('transactions')->name('transactions.')->group(function() {
+            Route::middleware(['can:money-management.transactions'])->prefix('transactions')->name('transactions.')->group(function () {
                 Route::get('/', [TransactionController::class, 'index'])->name('index');
                 Route::get('/datatable', [TransactionController::class, 'datatable'])->name('datatable');
                 Route::get('/categories', [TransactionController::class, 'getCategories'])->name('get-categories');
@@ -112,19 +113,19 @@ Route::middleware(['auth', 'approved'])->group(function () {
             });
 
             // Summary & Net Worth
-            Route::middleware(['can:money-management.summary'])->prefix('summary')->name('summary.')->group(function() {
+            Route::middleware(['can:money-management.summary'])->prefix('summary')->name('summary.')->group(function () {
                 Route::get('/', [SummaryController::class, 'index'])->name('index');
                 Route::get('/net-worth-snapshot', [SummaryController::class, 'takeNetWorthSnapshot'])->name('net-worth-snapshot');
             });
 
             // Budgets
-            Route::middleware(['can:money-management.budgets'])->prefix('budgets')->name('budgets.')->group(function() {
+            Route::middleware(['can:money-management.budgets'])->prefix('budgets')->name('budgets.')->group(function () {
                 Route::get('/', [BudgetController::class, 'index'])->name('index');
                 Route::post('/', [BudgetController::class, 'store'])->name('store');
             });
 
             // Transfers
-            Route::middleware(['can:money-management.internal-transfers'])->prefix('transfers')->name('transfers.')->group(function() {
+            Route::middleware(['can:money-management.internal-transfers'])->prefix('transfers')->name('transfers.')->group(function () {
                 Route::get('/', [TransferController::class, 'index'])->name('index');
                 Route::get('/datatable', [TransferController::class, 'datatable'])->name('datatable');
                 Route::post('/', [TransferController::class, 'store'])->name('store');
@@ -133,7 +134,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
             });
 
             // Recurring Transactions
-            Route::middleware(['can:money-management.recurring'])->prefix('recurring')->name('recurring.')->group(function() {
+            Route::middleware(['can:money-management.recurring'])->prefix('recurring')->name('recurring.')->group(function () {
                 Route::get('/', [RecurringTransactionController::class, 'index'])->name('index');
                 Route::get('/datatable', [RecurringTransactionController::class, 'datatable'])->name('datatable');
                 Route::post('/', [RecurringTransactionController::class, 'store'])->name('store');
@@ -142,13 +143,13 @@ Route::middleware(['auth', 'approved'])->group(function () {
 
             // Portfolio / Savings
             // Portfolio
-            Route::group(['prefix' => 'portfolio', 'as' => 'portfolio.'], function() {
+            Route::group(['prefix' => 'portfolio', 'as' => 'portfolio.'], function () {
                 Route::get('/', [PortfolioController::class, 'index'])->name('index');
                 Route::get('/datatable', [PortfolioController::class, 'datatable'])->name('datatable');
                 Route::post('/store', [PortfolioController::class, 'store'])->name('store');
                 Route::delete('/{id}', [PortfolioController::class, 'destroy'])->name('destroy');
                 Route::get('/{id}', [PortfolioController::class, 'show'])->name('show');
-                
+
                 // Internal Transactions inside portfolio
                 Route::get('/{id}/transactions', [PortfolioController::class, 'transactionDatatable'])->name('transactions.datatable');
                 Route::post('/transaction/store', [PortfolioController::class, 'storeTransaction'])->name('transactions.store');
@@ -157,31 +158,31 @@ Route::middleware(['auth', 'approved'])->group(function () {
             });
 
             // Bitcoin Tracking
-            Route::group(['prefix' => 'btc-tracking', 'as' => 'btc-tracking.'], function() {
+            Route::group(['prefix' => 'btc-tracking', 'as' => 'btc-tracking.'], function () {
                 Route::get('/', [BtcTrackingController::class, 'index'])->name('index');
                 Route::get('/datatable', [BtcTrackingController::class, 'datatable'])->name('datatable');
                 Route::post('/store', [BtcTrackingController::class, 'store'])->name('store');
                 Route::delete('/{id}', [BtcTrackingController::class, 'destroy'])->name('destroy');
             });
-        
+
             // Wedding
-            Route::prefix('wedding-planner')->name('wedding-planner.')->group(function() {
+            Route::prefix('wedding-planner')->name('wedding-planner.')->group(function () {
                 Route::get('/', [WeddingPlannerController::class, 'index'])->name('index');
                 Route::post('/', [WeddingPlannerController::class, 'store'])->name('store');
                 Route::post('/item', [WeddingPlannerController::class, 'storeItem'])->name('item.store');
                 Route::delete('/item/{id}', [WeddingPlannerController::class, 'destroyItem'])->name('item.destroy');
-                
+
                 // Savings Transactions
                 Route::post('/savings', [WeddingPlannerController::class, 'storeSavings'])->name('savings.store');
                 Route::delete('/savings/{id}', [WeddingPlannerController::class, 'destroySavings'])->name('savings.destroy');
             });
 
             // Master Data Routes
-            Route::prefix('master-data')->name('master-data.')->group(function() {
+            Route::prefix('master-data')->name('master-data.')->group(function () {
                 // Category Expenses
                 Route::get('/expenses', [MasterDataController::class, 'expensesIndex'])->name('expenses.index');
                 Route::get('/expenses/datatable', [MasterDataController::class, 'expensesDatatable'])->name('expenses.datatable');
-                
+
                 // Category Income
                 Route::get('/income', [MasterDataController::class, 'incomeIndex'])->name('income.index');
                 Route::get('/income/datatable', [MasterDataController::class, 'incomeDatatable'])->name('income.datatable');
@@ -205,6 +206,27 @@ Route::middleware(['auth', 'approved'])->group(function () {
         });
     });
 
+    Route::middleware(['can:daily-planner.dashboard'])->group(function () {
+        Route::prefix('daily-planner')->name('daily-planner.')->group(function () {
+            // Dashboard
+            Route::get('/dashboard', [DailyPlannerController::class, 'index'])->name('dashboard');
+
+            // Activity CRUD List
+            Route::get('/activity', [DailyPlannerController::class, 'activity'])->name('activity');
+
+            // CRUD Actions
+            Route::post('/activity', [DailyPlannerController::class, 'store'])->name('activity.store');
+            Route::put('/activity/{id}', [DailyPlannerController::class, 'update'])->name('activity.update');
+            Route::delete('/activity/{id}', [DailyPlannerController::class, 'destroy'])->name('activity.destroy');
+
+            // FullCalendar feed
+            Route::get('/events', [DailyPlannerController::class, 'getEvents'])->name('events');
+
+            // Quick toggle status
+            Route::patch('/activity/{id}/toggle', [DailyPlannerController::class, 'quickToggleStatus'])->name('activity.toggle');
+        });
+    });
+
 
     // Account Settings
     Route::prefix('account')->name('account.')->group(function () {
@@ -215,17 +237,17 @@ Route::middleware(['auth', 'approved'])->group(function () {
 
     // Admin Routes
     Route::middleware(['administrator'])->prefix('administrator')->name('administrator.')->group(function () {
-        
+
         Route::middleware(['can:users'])->group(function () {
             Route::get('/user-approval', [UserApprovalController::class, 'index'])->name('user-approval.index');
             Route::get('/user-approval/datatable', [UserApprovalController::class, 'datatable'])->name('user-approval.datatable');
             Route::post('/user-approval/approve/{id}', [UserApprovalController::class, 'approve'])->name('user-approval.approve');
-            
+
             // User List Routes
             Route::get('/user-list', [UserApprovalController::class, 'listing'])->name('user-approval.listing');
             Route::get('/user-list/datatable', [UserApprovalController::class, 'listingDatatable'])->name('user-approval.listing.datatable');
             Route::delete('/user-approval/destroy/{id}', [UserApprovalController::class, 'destroy'])->name('user-approval.destroy');
-            
+
             // New: User App Access Management
             Route::prefix('user-apps')->name('user-apps.')->group(function () {
                 Route::get('/{userId}', [UserAppController::class, 'index'])->name('index');

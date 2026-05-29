@@ -13,6 +13,21 @@ Breadcrumbs::for('detail-expenses-rifqi', function (BreadcrumbTrail $trail) {
 });
 
 
+Breadcrumbs::for('daily-planner', function (BreadcrumbTrail $trail) {
+    $trail->push('Daily Planner', '#');
+});
+
+// Daily Planner > Dashboard
+Breadcrumbs::for('daily-planner.dashboard', function (BreadcrumbTrail $trail) {
+    $trail->parent('daily-planner');
+    $trail->push('Dashboard', route('daily-planner.dashboard'));
+});
+
+// Daily Planner > Activity
+Breadcrumbs::for('daily-planner.activity', function (BreadcrumbTrail $trail) {
+    $trail->parent('daily-planner');
+    $trail->push('Activity', route('daily-planner.activity'));
+});
 
 // Money Management
 Breadcrumbs::for('money-management', function (BreadcrumbTrail $trail) {
