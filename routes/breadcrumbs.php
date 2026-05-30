@@ -29,6 +29,12 @@ Breadcrumbs::for('daily-planner.activity', function (BreadcrumbTrail $trail) {
     $trail->push('Activity', route('daily-planner.activity'));
 });
 
+// Daily Planner > Recurring Activity
+Breadcrumbs::for('daily-planner.recurring-activity', function (BreadcrumbTrail $trail) {
+    $trail->parent('daily-planner');
+    $trail->push('Recurring Activity', route('daily-planner.recurring-activity'));
+});
+
 // Money Management
 Breadcrumbs::for('money-management', function (BreadcrumbTrail $trail) {
     $trail->push('Money Management', '#');

@@ -14,6 +14,8 @@ class DailyPlannerActivity extends Model
 
     protected $fillable = [
         'user_id',
+        'recurring_activity_id',
+        'recurring_date',
         'activity',
         'status',
         'start_datetime',
@@ -23,7 +25,16 @@ class DailyPlannerActivity extends Model
     protected $casts = [
         'start_datetime' => 'datetime',
         'end_datetime'   => 'datetime',
+        'recurring_date' => 'date',
     ];
+
+    /**
+     * Get the recurring activity that generated this daily activity.
+     */
+    public function recurringActivity()
+    {
+        return $this->belongsTo(DailyPlannerRecurringActivity::class, 'recurring_activity_id');
+    }
 
     /**
      * Get the user that owns the activity.

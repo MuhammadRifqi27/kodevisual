@@ -26,6 +26,7 @@ class DailyPlannerSeeder extends Seeder
         $permissions = [
             'dashboard' => 'View Dashboard',
             'activity' => 'Manage Activities (CRUD)',
+            'recurring-activity' => 'Manage Recurring Activities (CRUD)',
         ];
 
         $permissionModels = [];

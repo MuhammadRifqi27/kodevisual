@@ -92,7 +92,17 @@ return [
             'iconName' => 'calendar',
         ],
         [
-            'label' => 'Money Management System',
+            'label' => 'Recurring Activity',
+            'type' => 'item',
+            'route' => 'daily-planner.recurring-activity',
+            'active' => ['daily-planner.recurring-activity'],
+            'permission' => ['daily-planner.recurring-activity'],
+            'permissionType' => 'gate',
+            'icon' => 'ki',
+            'iconName' => 'calendar',
+        ],
+        [
+            'label' => 'Money -Management System',
             'type' => 'heading',
             'permission' => ['money-management.dashboard'],
             'permissionType' => 'gate'

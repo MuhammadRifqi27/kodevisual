@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DailyPlannerActivity;
+use App\Models\DailyPlannerRecurringActivity;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -16,6 +17,7 @@ class DailyPlannerController extends Controller
         addVendor('flatpickr');
 
         $userId = auth()->id();
+        $this->processRecurringActivities($userId);
         $today = Carbon::today()->toDateString();
 
         // 1. Core Statistics
@@ -52,7 +54,7 @@ class DailyPlannerController extends Controller
         for ($i = 6; $i >= 0; $i--) {
             $dayDate = Carbon::today()->subDays($i)->toDateString();
             $dayLabel = Carbon::today()->subDays($i)->translatedFormat('D'); // e.g. Sen, Sel, Rab
-            
+
             $dayTotal = DailyPlannerActivity::where('user_id', $userId)
                 ->whereDate('start_datetime', $dayDate)
                 ->count();
@@ -60,9 +62,9 @@ class DailyPlannerController extends Controller
                 ->whereDate('start_datetime', $dayDate)
                 ->where('status', 'done')
                 ->count();
-            
+
             $rate = $dayTotal > 0 ? round(($dayDone / $dayTotal) * 100) : 0;
-            
+
             $weeklyChartData[] = $rate;
             $weeklyChartCategories[] = $dayLabel;
         }
@@ -91,6 +93,7 @@ class DailyPlannerController extends Controller
         addVendor('flatpickr');
 
         $userId = auth()->id();
+        $this->processRecurringActivities($userId);
         $activities = DailyPlannerActivity::where('user_id', $userId)
             ->orderBy('start_datetime', 'desc')
             ->get();
@@ -211,7 +214,7 @@ class DailyPlannerController extends Controller
     public function quickToggleStatus(Request $request, $id)
     {
         $activity = DailyPlannerActivity::where('user_id', auth()->id())->findOrFail($id);
-        
+
         $newStatus = $activity->status === 'done' ? 'not started' : 'done';
         $activity->update(['status' => $newStatus]);
 
@@ -220,5 +223,182 @@ class DailyPlannerController extends Controller
             'status' => $newStatus
         ]);
     }
-}
 
+    /**
+     * Show the Recurring Activity management page.
+     */
+    public function recurring()
+    {
+        $userId = auth()->id();
+        $this->processRecurringActivities($userId);
+        $recurrings = DailyPlannerRecurringActivity::where('user_id', $userId)->get();
+        return view('pages.daily-planner.recurring', compact('recurrings'));
+    }
+    /**
+     * Alias for route compatibility.
+     */
+    public function recurringActivity()
+    {
+        return $this->recurring();
+    }
+
+    /**
+     * Store a newly created recurring activity.
+     */
+    public function storeRecurring(Request $request)
+    {
+        $request->validate([
+            'activity' => 'required|string|max:255',
+            'frequency' => 'required|in:daily,weekly,monthly',
+            'day_of_week' => 'required_if:frequency,weekly|nullable|array',
+            'day_of_month' => 'required_if:frequency,monthly|nullable|integer|min:1|max:31',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_time' => 'required|date_format:H:i',
+            'duration_minutes' => 'required|integer|min:1',
+            'is_active' => 'required|boolean',
+        ]);
+        $data = $request->only([
+            'activity',
+            'frequency',
+            'day_of_week',
+            'day_of_month',
+            'start_date',
+            'end_date',
+            'start_time',
+            'duration_minutes',
+            'is_active'
+        ]);
+        $data['user_id'] = auth()->id();
+        
+        // Ensure frequency-specific fields are correctly structured and nullified if not applicable
+        if ($request->frequency === 'weekly') {
+            $data['day_of_week'] = $request->day_of_week;
+            $data['day_of_month'] = null;
+        } elseif ($request->frequency === 'monthly') {
+            $data['day_of_week'] = null;
+        } else {
+            $data['day_of_week'] = null;
+            $data['day_of_month'] = null;
+        }
+
+        DailyPlannerRecurringActivity::create($data);
+        return response()->json(['success' => 'Recurring activity created successfully.']);
+    }
+
+    /**
+     * Update an existing recurring activity.
+     */
+    public function updateRecurring(Request $request, $id)
+    {
+        $request->validate([
+            'activity' => 'required|string|max:255',
+            'frequency' => 'required|in:daily,weekly,monthly',
+            'day_of_week' => 'required_if:frequency,weekly|nullable|array',
+            'day_of_month' => 'required_if:frequency,monthly|nullable|integer|min:1|max:31',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_time' => 'required|date_format:H:i',
+            'duration_minutes' => 'required|integer|min:1',
+            'is_active' => 'required|boolean',
+        ]);
+
+        $recurring = DailyPlannerRecurringActivity::where('user_id', auth()->id())->findOrFail($id);
+        
+        $data = $request->only([
+            'activity',
+            'frequency',
+            'day_of_week',
+            'day_of_month',
+            'start_date',
+            'end_date',
+            'start_time',
+            'duration_minutes',
+            'is_active'
+        ]);
+
+        // Ensure frequency-specific fields are correctly structured and nullified if not applicable
+        if ($request->frequency === 'weekly') {
+            $data['day_of_week'] = $request->day_of_week;
+            $data['day_of_month'] = null;
+        } elseif ($request->frequency === 'monthly') {
+            $data['day_of_week'] = null;
+        } else {
+            $data['day_of_week'] = null;
+            $data['day_of_month'] = null;
+        }
+
+        $recurring->update($data);
+        return response()->json(['success' => 'Recurring activity updated successfully.']);
+    }
+
+    /**
+     * Delete a recurring activity.
+     */
+    public function destroyRecurring($id)
+    {
+        $recurring = DailyPlannerRecurringActivity::where('user_id', auth()->id())->findOrFail($id);
+        $recurring->delete();
+        return response()->json(['success' => 'Recurring activity deleted successfully.']);
+    }
+
+    /**
+     * Manually trigger sync of recurring activities to daily activities.
+     */
+    public function syncRecurring()
+    {
+        $userId = auth()->id();
+        $this->processRecurringActivities($userId);
+        return response()->json(['success' => 'Recurring activities synced.']);
+    }
+
+    /**
+     * Core engine: generate daily activities from active recurring definitions.
+     * Performs a direct day-by-day scan over the next 14 days and inserts
+     * missing entries — idempotent (safe to call on every page load).
+     */
+    protected function processRecurringActivities(int $userId): void
+    {
+        $recurrings = DailyPlannerRecurringActivity::where('user_id', $userId)
+            ->where('is_active', true)
+            ->get();
+
+        if ($recurrings->isEmpty()) {
+            return;
+        }
+
+        $today   = Carbon::today();
+        $endScan = $today->copy()->addDays(13); // inclusive 14-day window
+
+        foreach ($recurrings as $rec) {
+            $current = $today->copy();
+
+            while ($current->lessThanOrEqualTo($endScan)) {
+                // Check recurrence rule against this date
+                if ($rec->matchesDate($current)) {
+                    $alreadyExists = DailyPlannerActivity::where('user_id', $userId)
+                        ->where('recurring_activity_id', $rec->id)
+                        ->whereDate('recurring_date', $current->toDateString())
+                        ->exists();
+
+                    if (! $alreadyExists) {
+                        $startDt = Carbon::parse($current->toDateString() . ' ' . $rec->start_time);
+                        $endDt   = $startDt->copy()->addMinutes((int) $rec->duration_minutes);
+
+                        DailyPlannerActivity::create([
+                            'user_id'               => $userId,
+                            'recurring_activity_id' => $rec->id,
+                            'recurring_date'        => $current->toDateString(),
+                            'activity'              => $rec->activity,
+                            'status'                => 'not started',
+                            'start_datetime'        => $startDt,
+                            'end_datetime'          => $endDt,
+                        ]);
+                    }
+                }
+
+                $current->addDay();
+            }
+        }
+    }
+}

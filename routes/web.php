@@ -224,6 +224,15 @@ Route::middleware(['auth', 'approved'])->group(function () {
 
             // Quick toggle status
             Route::patch('/activity/{id}/toggle', [DailyPlannerController::class, 'quickToggleStatus'])->name('activity.toggle');
+
+            // Recurring Activities CRUD
+            Route::middleware(['can:daily-planner.recurring-activity'])->group(function () {
+                Route::get('/recurring-activity', [DailyPlannerController::class, 'recurringActivity'])->name('recurring-activity');
+                Route::post('/recurring-activity', [DailyPlannerController::class, 'storeRecurring'])->name('recurring-activity.store');
+                Route::put('/recurring-activity/{id}', [DailyPlannerController::class, 'updateRecurring'])->name('recurring-activity.update');
+                Route::delete('/recurring-activity/{id}', [DailyPlannerController::class, 'destroyRecurring'])->name('recurring-activity.destroy');
+                Route::post('/recurring-activity/sync', [DailyPlannerController::class, 'syncRecurring'])->name('recurring-activity.sync');
+            });
         });
     });
 
