@@ -21,6 +21,10 @@
             transform: translateY(-3px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
+        /* Ensure flatpickr input fills full width when static:true is used */
+        .flatpickr-wrapper {
+            width: 100%;
+        }
     </style>
     @endpush
 
@@ -209,7 +213,7 @@
                         <!-- Start Datetime Picker -->
                         <div class="fv-row mb-7">
                             <label class="fs-6 fw-semibold required mb-2">Tanggal &amp; Jam Mulai</label>
-                            <div class="mb-0">
+                            <div class="mb-0 position-relative">
                                 <input class="form-control form-control-solid" placeholder="Pilih tanggal &amp; jam mulai" id="form_picker_start" name="start_datetime" required />
                             </div>
                         </div>
@@ -217,7 +221,7 @@
                         <!-- End Datetime Picker -->
                         <div class="fv-row mb-7">
                             <label class="fs-6 fw-semibold mb-2">Tanggal &amp; Jam Selesai <span class="text-muted fs-7">(opsional)</span></label>
-                            <div class="mb-0">
+                            <div class="mb-0 position-relative">
                                 <input class="form-control form-control-solid" placeholder="Pilih tanggal &amp; jam selesai" id="form_picker_end" name="end_datetime" />
                             </div>
                         </div>
@@ -317,17 +321,18 @@
             enableTime: true,
             dateFormat: "Y-m-d H:i",
             defaultDate: new Date(),
-            onChange: function(selectedDates) {
-                if (selectedDates.length > 0) {
-                    fpFormEnd.set('minDate', selectedDates[0]);
-                }
-            }
+            allowInput: true,
+            static: true,
+            time_24hr: true
         });
 
         var fpFormEnd = flatpickr("#form_picker_end", {
             enableTime: true,
             dateFormat: "Y-m-d H:i",
-            defaultDate: new Date(new Date().getTime() + 60 * 60 * 1000)
+            defaultDate: new Date(new Date().getTime() + 60 * 60 * 1000),
+            allowInput: true,
+            static: true,
+            time_24hr: true
         });
 
         // Initialize Flatpickr for Date Filter in Table

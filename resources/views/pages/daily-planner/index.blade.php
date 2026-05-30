@@ -25,6 +25,10 @@
         .task-text {
             transition: all 0.3s ease;
         }
+        /* Ensure flatpickr input fills full width when static:true is used */
+        .flatpickr-wrapper {
+            width: 100%;
+        }
     </style>
     @endpush
 
@@ -317,7 +321,7 @@
                         <!-- Start Datetime Picker -->
                         <div class="fv-row mb-7">
                             <label class="fs-6 fw-semibold required mb-2">Tanggal &amp; Jam Mulai</label>
-                            <div class="mb-0">
+                            <div class="mb-0 position-relative">
                                 <input class="form-control form-control-solid" placeholder="Pilih tanggal &amp; jam mulai" id="quick_picker_start" name="start_datetime" required />
                             </div>
                         </div>
@@ -325,7 +329,7 @@
                         <!-- End Datetime Picker -->
                         <div class="fv-row mb-7">
                             <label class="fs-6 fw-semibold mb-2">Tanggal &amp; Jam Selesai <span class="text-muted fs-7">(opsional)</span></label>
-                            <div class="mb-0">
+                            <div class="mb-0 position-relative">
                                 <input class="form-control form-control-solid" placeholder="Pilih tanggal &amp; jam selesai" id="quick_picker_end" name="end_datetime" />
                             </div>
                         </div>
@@ -538,18 +542,18 @@
                 enableTime: true,
                 dateFormat: "Y-m-d H:i",
                 defaultDate: new Date(),
-                onChange: function(selectedDates) {
-                    // Set minimum date for end picker to be same as start
-                    if (selectedDates.length > 0) {
-                        fpEnd.set('minDate', selectedDates[0]);
-                    }
-                }
+                allowInput: true,
+                static: true,
+                time_24hr: true
             });
 
             var fpEnd = flatpickr("#quick_picker_end", {
                 enableTime: true,
                 dateFormat: "Y-m-d H:i",
-                defaultDate: new Date(new Date().getTime() + 60 * 60 * 1000) // +1 jam
+                defaultDate: new Date(new Date().getTime() + 60 * 60 * 1000),
+                allowInput: true,
+                static: true,
+                time_24hr: true
             });
 
             // Reset pickers when modal is closed
