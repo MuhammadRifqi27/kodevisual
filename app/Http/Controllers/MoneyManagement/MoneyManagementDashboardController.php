@@ -18,13 +18,13 @@ class MoneyManagementDashboardController extends Controller
         $userId = auth()->id();
         $month = $request->get('month', date('m'));
         $year = $request->get('year', date('Y'));
-        
+
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
-        
+
         // Fetch payroll start day from settings (default to 25)
         $payrollDay = FinanceSetting::where('user_id', $userId)->where('key', 'payroll_start_day')->first()?->value ?? 25;
-        
+
         // Calculate cycle dates based on the payroll day
         if ($payrollDay === 'last' || (int)$payrollDay > 15) {
             $baseDate = (clone $startDate)->subMonth();
@@ -51,22 +51,21 @@ class MoneyManagementDashboardController extends Controller
         foreach ($portfolios as $portfolio) {
             $prevInvIn = FinanceInvestmentTransaction::where('finance_investment_id', $portfolio->id)->where('user_id', $userId)->where('date', '<=', $cycleEndDate)->whereIn('type', ['deposit', 'profit'])->sum('amount');
             $prevInvOut = FinanceInvestmentTransaction::where('finance_investment_id', $portfolio->id)->where('user_id', $userId)->where('date', '<=', $cycleEndDate)->whereIn('type', ['withdrawal', 'loss'])->sum('amount');
-            
+
             // Calculate General Transactions (Income is +, Expense is -, Transfer is signed)
             $genBalance = FinanceTransaction::where('finance_investment_id', $portfolio->id)
                 ->where('user_id', $userId)
                 ->where('date', '<=', $cycleEndDate)
                 ->select(DB::raw("SUM(CASE WHEN type = 'expense' THEN -amount ELSE amount END) as total"))
                 ->value('total') ?? 0;
-            
+
             $balance = ($prevInvIn - $prevInvOut) + $genBalance;
             $totalNetWorthAtEnd += $balance;
 
             // Heuristic to separate liquid cash from investments
-            $invName = strtoupper($portfolio->investment->name ?? '');
-            $invCode = strtoupper($portfolio->investment->code ?? '');
-            $isInvestment = in_array($invName, ['GOLD', 'BITCOIN', 'CRYPTO', 'SAHAM', 'STOCKBIT', 'ETHEREUM']) || in_array($invCode, ['XAU', 'BTC', 'ETH']);
-            
+            $invId = strtoupper($portfolio->investment->id ?? '');
+            $isInvestment = in_array($invId, [1, 2, 8, 9]);
+
             if ($isInvestment) {
                 $totalInvestmentValue += $balance;
             } else {
@@ -85,7 +84,8 @@ class MoneyManagementDashboardController extends Controller
                     'investment' => $portfolio->investment->name,
                     'investment-code' => $portfolio->investment->code,
                     'balance' => $balance,
-                    'is_investment' => $isInvestment
+                    'is_investment' => $isInvestment,
+                    'assets' => $portfolio->id
                 ];
             }
         }
@@ -96,7 +96,7 @@ class MoneyManagementDashboardController extends Controller
             ->where('date', '<=', $cycleEndDate)
             ->select(DB::raw("SUM(CASE WHEN type = 'expense' THEN -amount ELSE amount END) as total"))
             ->value('total') ?? 0;
-        
+
         $totalLiquidCash += $untrackedCash;
         $totalNetWorthAtEnd += $untrackedCash;
 
@@ -106,7 +106,7 @@ class MoneyManagementDashboardController extends Controller
                 'balance' => $untrackedCash
             ];
         }
-        
+
         // 2. Rolling Cycle Stats
         $incomePool = FinanceTransaction::where('user_id', $userId)
             ->where('type', 'income')
@@ -127,7 +127,7 @@ class MoneyManagementDashboardController extends Controller
             ->with('category')
             ->get()
             ->groupBy('finance_category_id')
-            ->map(function($group) {
+            ->map(function ($group) {
                 return [
                     'name' => $group->first()->category->name ?? 'Income',
                     'total' => $group->sum('amount')
@@ -143,7 +143,7 @@ class MoneyManagementDashboardController extends Controller
             ->with('category')
             ->get()
             ->groupBy('finance_category_id')
-            ->map(function($group) {
+            ->map(function ($group) {
                 return [
                     'name' => $group->first()->category->name ?? 'Unknown',
                     'total' => $group->sum('amount')

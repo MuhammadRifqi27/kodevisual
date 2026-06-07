@@ -170,9 +170,9 @@
                             <div class="d-flex align-items-center mb-5">
                                 <div class="symbol symbol-40px me-3">
                                     <span class="symbol-label">
-                                        @if($data['investment'] == 'BITCOIN')
+                                        @if($data['assets'] == 1)
                                             <i class="ki-duotone ki-bitcoin fs-2x text-warning"><span class="path1"></span><span class="path2"></span></i>
-                                        @elseif($data['investment'] == 'GOLD')
+                                        @elseif($data['assets'] == 2)
                                             <i class="ki-duotone ki-ocean fs-2x text-warning">
                                                 <span class="path1"></span>
                                                 <span class="path2"></span>

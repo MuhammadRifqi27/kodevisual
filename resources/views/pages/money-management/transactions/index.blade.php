@@ -248,7 +248,7 @@
                     {data: 'description', name: 'description'},
                     {data: 'action', name: 'action', orderable: false, searchable: false},
                 ],
-                order: [[2, 'desc']],
+                order: [[1, 'desc']],
                 drawCallback: function(settings) {
                     const json = settings.json;
                     if (json) {

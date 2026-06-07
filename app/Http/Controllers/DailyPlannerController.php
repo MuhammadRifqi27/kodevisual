@@ -329,6 +329,18 @@ class DailyPlannerController extends Controller
         }
 
         $recurring->update($data);
+
+        // Sync future instances: delete pending future instances from today onwards
+        DailyPlannerActivity::where('recurring_activity_id', $recurring->id)
+            ->where('recurring_date', '>=', Carbon::today()->toDateString())
+            ->where('status', '!=', 'done')
+            ->delete();
+
+        // Regenerate if recurring activity is still active
+        if ($recurring->is_active) {
+            $this->processRecurringActivities(auth()->id());
+        }
+
         return response()->json(['success' => 'Recurring activity updated successfully.']);
     }
 
@@ -338,6 +350,13 @@ class DailyPlannerController extends Controller
     public function destroyRecurring($id)
     {
         $recurring = DailyPlannerRecurringActivity::where('user_id', auth()->id())->findOrFail($id);
+
+        // Delete pending future instances from today onwards
+        DailyPlannerActivity::where('recurring_activity_id', $recurring->id)
+            ->where('recurring_date', '>=', Carbon::today()->toDateString())
+            ->where('status', '!=', 'done')
+            ->delete();
+
         $recurring->delete();
         return response()->json(['success' => 'Recurring activity deleted successfully.']);
     }
