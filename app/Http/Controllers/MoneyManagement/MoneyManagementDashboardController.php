@@ -20,25 +20,31 @@ class MoneyManagementDashboardController extends Controller
         $year = $request->get('year', date('Y'));
 
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
 
         // Fetch payroll start day from settings (default to 25)
         $payrollDay = FinanceSetting::where('user_id', $userId)->where('key', 'payroll_start_day')->first()?->value ?? 25;
 
         // Calculate cycle dates based on the payroll day
-        if ($payrollDay === 'last' || (int)$payrollDay > 15) {
-            $baseDate = (clone $startDate)->subMonth();
-        } else {
-            $baseDate = (clone $startDate);
-        }
+        $prevMonthDate = (clone $startDate)->subMonth();
+        $nextMonthDate = (clone $startDate)->addMonth();
 
-        if ($payrollDay === 'last') {
-            $cycleStartDate = $baseDate->endOfMonth()->startOfDay();
+        $calculateStartForBase = function($base) use ($payrollDay) {
+            if ($payrollDay === 'last') {
+                return (clone $base)->endOfMonth()->startOfDay();
+            } else {
+                $dayToUse = min((int)$payrollDay, $base->daysInMonth);
+                return (clone $base)->day($dayToUse)->startOfDay();
+            }
+        };
+
+        if ($payrollDay === 'last' || (int)$payrollDay > 15) {
+            $cycleStartDate = $calculateStartForBase($prevMonthDate);
+            $nextCycleStartDate = $calculateStartForBase($startDate);
         } else {
-            $dayToUse = min((int)$payrollDay, $baseDate->daysInMonth);
-            $cycleStartDate = $baseDate->day($dayToUse)->startOfDay();
+            $cycleStartDate = $calculateStartForBase($startDate);
+            $nextCycleStartDate = $calculateStartForBase($nextMonthDate);
         }
-        $cycleEndDate = (clone $cycleStartDate)->addMonth()->subSecond();
+        $cycleEndDate = (clone $nextCycleStartDate)->subSecond();
 
         // 1. Calculate Liquid Cash vs Long-term Investments
         $portfolios = \App\Models\FinancePortfolio::where('user_id', $userId)->with('investment')->get();
@@ -123,7 +129,7 @@ class MoneyManagementDashboardController extends Controller
         // Breakdown of Income Categories for this cycle
         $incomeBreakdown = FinanceTransaction::where('user_id', $userId)
             ->where('type', 'income')
-            ->whereBetween('date', [$cycleStartDate, $endDate])
+            ->whereBetween('date', [$cycleStartDate, $cycleEndDate])
             ->with('category')
             ->get()
             ->groupBy('finance_category_id')
@@ -139,7 +145,7 @@ class MoneyManagementDashboardController extends Controller
         // 3. Top Spending Categories (This Cycle)
         $topExpenses = FinanceTransaction::where('user_id', $userId)
             ->where('type', 'expense')
-            ->whereBetween('date', [$cycleStartDate, $endDate])
+            ->whereBetween('date', [$cycleStartDate, $cycleEndDate])
             ->with('category')
             ->get()
             ->groupBy('finance_category_id')
@@ -155,7 +161,7 @@ class MoneyManagementDashboardController extends Controller
         // 4. Recent Transactions (From cycle start)
         $recentTransactions = FinanceTransaction::where('user_id', $userId)
             ->whereIn('type', ['income', 'expense', 'transfer'])
-            ->whereBetween('date', [$cycleStartDate, $endDate])
+            ->whereBetween('date', [$cycleStartDate, $cycleEndDate])
             ->with(['category', 'portfolio'])
             ->orderBy('date', 'desc')
             ->orderBy('created_at', 'desc')

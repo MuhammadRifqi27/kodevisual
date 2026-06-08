@@ -20,27 +20,30 @@ class BudgetController extends Controller
         $year = $request->get('year', date('Y'));
 
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
 
         // Fetch payroll start day from settings (default to 25)
         $payrollDay = FinanceSetting::where('user_id', $userId)->where('key', 'payroll_start_day')->first()?->value ?? 25;
         
-        // Calculate cycle dates based on the payroll day
-        // Threshold: If payroll day is 1-15, it's typically for the current month.
-        // If it's 16-31 or 'last', it's typically for the next month (e.g. 25th Feb for March).
-        if ($payrollDay === 'last' || (int)$payrollDay > 15) {
-            $baseDate = (clone $startDate)->subMonth();
-        } else {
-            $baseDate = (clone $startDate);
-        }
+        $prevMonthDate = (clone $startDate)->subMonth();
+        $nextMonthDate = (clone $startDate)->addMonth();
 
-        if ($payrollDay === 'last') {
-            $cycleStartDate = $baseDate->endOfMonth()->startOfDay();
+        $calculateStartForBase = function($base) use ($payrollDay) {
+            if ($payrollDay === 'last') {
+                return (clone $base)->endOfMonth()->startOfDay();
+            } else {
+                $dayToUse = min((int)$payrollDay, $base->daysInMonth);
+                return (clone $base)->day($dayToUse)->startOfDay();
+            }
+        };
+
+        if ($payrollDay === 'last' || (int)$payrollDay > 15) {
+            $cycleStartDate = $calculateStartForBase($prevMonthDate);
+            $nextCycleStartDate = $calculateStartForBase($startDate);
         } else {
-            $dayToUse = min((int)$payrollDay, $baseDate->daysInMonth);
-            $cycleStartDate = $baseDate->day($dayToUse)->startOfDay();
+            $cycleStartDate = $calculateStartForBase($startDate);
+            $nextCycleStartDate = $calculateStartForBase($nextMonthDate);
         }
-        $cycleEndDate = (clone $cycleStartDate)->addMonth()->subSecond();
+        $cycleEndDate = (clone $nextCycleStartDate)->subSecond();
 
         $categories = FinanceCategory::where('type', 'expense')->orderBy('name')->get();
         

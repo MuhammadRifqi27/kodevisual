@@ -23,7 +23,6 @@ class SummaryController extends Controller
         $year = $request->get('year', date('Y'));
         
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
 
         // Assets / Net Worth
         $portfolios = FinancePortfolio::where('user_id', $userId)->with('investment')->get();
@@ -57,20 +56,26 @@ class SummaryController extends Controller
         // Fetch payroll start day from settings (default to 25)
         $payrollDay = FinanceSetting::where('user_id', $userId)->where('key', 'payroll_start_day')->first()?->value ?? 25;
         
-        // Calculate current cycle dates based on the payroll day
-        if ($payrollDay === 'last' || (int)$payrollDay > 15) {
-            $baseDate = (clone $startDate)->subMonth();
-        } else {
-            $baseDate = (clone $startDate);
-        }
+        $prevMonthDate = (clone $startDate)->subMonth();
+        $nextMonthDate = (clone $startDate)->addMonth();
 
-        if ($payrollDay === 'last') {
-            $cycleStartDate = $baseDate->endOfMonth()->startOfDay();
+        $calculateStartForBase = function($base) use ($payrollDay) {
+            if ($payrollDay === 'last') {
+                return (clone $base)->endOfMonth()->startOfDay();
+            } else {
+                $dayToUse = min((int)$payrollDay, $base->daysInMonth);
+                return (clone $base)->day($dayToUse)->startOfDay();
+            }
+        };
+
+        if ($payrollDay === 'last' || (int)$payrollDay > 15) {
+            $cycleStartDate = $calculateStartForBase($prevMonthDate);
+            $nextCycleStartDate = $calculateStartForBase($startDate);
         } else {
-            $dayToUse = min((int)$payrollDay, $baseDate->daysInMonth);
-            $cycleStartDate = $baseDate->day($dayToUse)->startOfDay();
+            $cycleStartDate = $calculateStartForBase($startDate);
+            $nextCycleStartDate = $calculateStartForBase($nextMonthDate);
         }
-        $cycleEndDate = (clone $cycleStartDate)->addMonth()->subSecond();
+        $cycleEndDate = (clone $nextCycleStartDate)->subSecond();
 
         // 1. Rekapitulasi per Kategori (Pengeluaran saja) - Using Cycle Period
         $categorySummary = FinanceTransaction::where('finance_transactions.user_id', $userId)
@@ -96,13 +101,26 @@ class SummaryController extends Controller
 
         // 3. Monthly Transactions for Chart (Trend from January 2026)
         $chartData = [];
-        $tempEndDate = (clone $cycleEndDate);
         $limitDate = Carbon::create(2026, 1, 1)->startOfDay();
         
-        // Loop as long as the cycle end date is within or after January 2026
-        while ($tempEndDate >= $limitDate) {
-            $cEnd = (clone $tempEndDate);
-            $cStart = (clone $cEnd)->subMonth()->addSecond();
+        $currentLoopDate = (clone $startDate);
+        
+        while ($currentLoopDate >= $limitDate) {
+            $loopYear = $currentLoopDate->year;
+            $loopMonth = $currentLoopDate->month;
+            
+            $loopStartDate = Carbon::createFromDate($loopYear, $loopMonth, 1)->startOfMonth();
+            $loopPrevMonthDate = (clone $loopStartDate)->subMonth();
+            $loopNextMonthDate = (clone $loopStartDate)->addMonth();
+            
+            if ($payrollDay === 'last' || (int)$payrollDay > 15) {
+                $cStart = $calculateStartForBase($loopPrevMonthDate);
+                $nextCStart = $calculateStartForBase($loopStartDate);
+            } else {
+                $cStart = $calculateStartForBase($loopStartDate);
+                $nextCStart = $calculateStartForBase($loopNextMonthDate);
+            }
+            $cEnd = (clone $nextCStart)->subSecond();
             
             $stats = FinanceTransaction::where('user_id', $userId)
                 ->whereBetween('date', [$cStart, $cEnd])
@@ -120,7 +138,7 @@ class SummaryController extends Controller
                 'expense' => (float)($stats->expense ?? 0),
             ];
             
-            $tempEndDate = (clone $cStart)->subSecond();
+            $currentLoopDate->subMonth();
 
             // Safety break to prevent infinite loop if something goes wrong with dates
             if (count($chartData) >= 24) break; 
@@ -128,12 +146,10 @@ class SummaryController extends Controller
         $chartData = collect(array_reverse($chartData));
 
         // 4. Perbandingan dengan Bulan Lalu (Previous Cycle)
-        $prevCycleBaseDate = (clone $baseDate)->subMonth();
-        if ($payrollDay === 'last') {
-            $lastCycleStart = $prevCycleBaseDate->endOfMonth()->startOfDay();
+        if ($payrollDay === 'last' || (int)$payrollDay > 15) {
+            $lastCycleStart = $calculateStartForBase($prevMonthDate->subMonth());
         } else {
-            $dayToUseLast = min((int)$payrollDay, $prevCycleBaseDate->daysInMonth);
-            $lastCycleStart = $prevCycleBaseDate->day($dayToUseLast)->startOfDay();
+            $lastCycleStart = $calculateStartForBase($prevMonthDate);
         }
         $lastCycleEnd = (clone $cycleStartDate)->subSecond();
         
