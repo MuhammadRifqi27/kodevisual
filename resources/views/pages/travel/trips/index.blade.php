@@ -15,6 +15,9 @@
                     </ul>
                 </div>
                 <div class="d-flex align-items-center gap-2 gap-lg-3">
+                    <a href="{{ route('travel.trips.export_all') }}" class="btn btn-light-success fw-bold">
+                        <i class="ki-outline ki-file-down fs-2 me-1"></i> Export Excel
+                    </a>
                     <a href="{{ route('travel.trips.create') }}" class="btn btn-primary fw-bold">
                         <i class="ki-outline ki-plus-circle fs-2 me-1"></i> New Project
                     </a>

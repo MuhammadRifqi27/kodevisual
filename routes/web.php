@@ -71,16 +71,20 @@ Route::middleware(['auth', 'approved'])->group(function () {
         // Trips
         Route::middleware(['can:travel-planner.trips'])->prefix('trips')->name('trips.')->group(function () {
             Route::get('/', [TravelTripController::class, 'index'])->name('index');
+            Route::get('/export', [TravelTripController::class, 'exportAll'])->name('export_all');
             Route::get('/create', [TravelTripController::class, 'create'])->name('create');
             Route::post('/', [TravelTripController::class, 'store'])->name('store');
             Route::get('/{id}', [TravelTripController::class, 'show'])->name('show');
             Route::get('/{id}/edit', [TravelTripController::class, 'edit'])->name('edit');
             Route::put('/{id}', [TravelTripController::class, 'update'])->name('update');
             Route::delete('/{id}', [TravelTripController::class, 'destroy'])->name('destroy');
+            Route::get('/{id}/export/full', [TravelTripController::class, 'exportFull'])->name('export_full');
+            Route::get('/{id}/export/itinerary', [TravelTripController::class, 'exportItinerary'])->name('export_itinerary');
         });
 
         // Itineraries
         Route::post('/itineraries', [TravelItineraryController::class, 'store'])->name('itineraries.store');
+        Route::put('/itineraries/{id}', [TravelItineraryController::class, 'update'])->name('itineraries.update');
         Route::delete('/itineraries/{id}', [TravelItineraryController::class, 'destroy'])->name('itineraries.destroy');
 
         // Budgets

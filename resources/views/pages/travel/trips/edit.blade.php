@@ -113,14 +113,14 @@
 
                         <!--begin::Input group-->
                         <div class="row g-9 mb-10">
-                            <div class="col-md-6 fv-row">
+                            <div class="col-md-4 fv-row">
                                 <label class="required fs-6 fw-semibold mb-2">Financial Allocation</label>
                                 <div class="input-group input-group-solid">
                                     <span class="input-group-text"><i class="ki-outline ki-wallet fs-3"></i></span>
                                     <input type="number" class="form-control" name="total_budget" value="{{ $trip->total_budget }}" required />
                                 </div>
                             </div>
-                            <div class="col-md-6 fv-row">
+                            <div class="col-md-4 fv-row">
                                 <label class="required fs-6 fw-semibold mb-2">Currency</label>
                                 <select class="form-select form-select-solid" name="currency" data-control="select2" data-placeholder="Select currency" data-minimum-results-for-search="0">
                                     <option value="IDR" {{ $trip->currency == 'IDR' ? 'selected' : '' }}>IDR - Indonesian Rupiah</option>
@@ -128,6 +128,13 @@
                                     <option value="JPY" {{ $trip->currency == 'JPY' ? 'selected' : '' }}>JPY - Japanese Yen</option>
                                     <option value="SGD" {{ $trip->currency == 'SGD' ? 'selected' : '' }}>SGD - Singapore Dollar</option>
                                 </select>
+                            </div>
+                            <div class="col-md-4 fv-row">
+                                <label class="required fs-6 fw-semibold mb-2">Number of Persons</label>
+                                <div class="input-group input-group-solid">
+                                    <span class="input-group-text"><i class="ki-outline ki-people fs-3"></i></span>
+                                    <input type="number" class="form-control" name="number_of_persons" value="{{ $trip->number_of_persons }}" min="1" required />
+                                </div>
                             </div>
                         </div>
                         <!--end::Input group-->

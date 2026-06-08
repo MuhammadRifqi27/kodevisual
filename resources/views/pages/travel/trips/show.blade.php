@@ -52,6 +52,9 @@
                                 <!--end::Details-->
                                 <!--begin::Actions-->
                                 <div class="d-flex mb-4">
+                                    <a href="{{ route('travel.trips.export_full', $trip->id) }}" class="btn btn-sm btn-light-success me-3">
+                                        <i class="ki-outline ki-file-down fs-4 me-1"></i>Export Full Trip (Excel)
+                                    </a>
                                     <a href="{{ route('travel.trips.edit', $trip->id) }}" class="btn btn-sm btn-bg-light btn-active-color-primary me-3">Edit Details</a>
                                     <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#kt_modal_add_itinerary">Add Activity</button>
                                 </div>
@@ -239,6 +242,13 @@
 
                 <!--begin::Itinerary Tab-->
                 <div class="tab-pane fade" id="kt_trip_itinerary" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-6">
+                        <h4 class="text-gray-900 fw-bold m-0">Daily Schedule</h4>
+                        <a href="{{ route('travel.trips.export_itinerary', $trip->id) }}" class="btn btn-sm btn-light-success">
+                            <i class="ki-outline ki-file-down fs-4 me-1"></i>Export Itinerary (Excel)
+                        </a>
+                    </div>
+
                     @foreach($trip->itineraries->groupBy('day_number')->sortKeys() as $day => $items)
                         <div class="card card-flush shadow-sm mb-6" style="border-radius: 20px;">
                             <div class="card-header pt-5">
@@ -269,16 +279,38 @@
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <span class="text-gray-900 fw-bold">{{ $trip->currency }} {{ number_format($activity->cost_estimate, 0) }}</span>
+                                                        <div class="d-flex flex-column">
+                                                            <span class="text-gray-900 fw-bold">{{ $trip->currency }} {{ number_format($activity->cost_estimate, 0) }}</span>
+                                                            <span class="text-muted fs-7">
+                                                                @if($activity->cost_type === 'per_person')
+                                                                    ({{ $trip->currency }} {{ number_format($activity->cost_per_person, 0) }}/person)
+                                                                @else
+                                                                    (Total Cost)
+                                                                @endif
+                                                            </span>
+                                                        </div>
                                                     </td>
                                                     <td class="text-end">
-                                                        <form action="{{ route('travel.itineraries.destroy', $activity->id) }}" method="POST" class="delete-form">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="button" class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm swal-delete-btn" data-title="Remove activity: {{ $activity->activity }}?">
-                                                                <i class="ki-outline ki-trash fs-3"></i>
+                                                        <div class="d-flex justify-content-end gap-2">
+                                                            <button type="button" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm edit-itinerary-btn"
+                                                                data-id="{{ $activity->id }}"
+                                                                data-datetime="{{ $activity->date }} {{ $activity->time ? substr($activity->time, 0, 5) : '00:00' }}"
+                                                                data-activity="{{ $activity->activity }}"
+                                                                data-location="{{ $activity->location }}"
+                                                                data-cost-type="{{ $activity->cost_type }}"
+                                                                data-cost-estimate="{{ $activity->cost_estimate }}"
+                                                                data-cost-per-person="{{ $activity->cost_per_person }}"
+                                                                data-update-url="{{ route('travel.itineraries.update', $activity->id) }}">
+                                                                <i class="ki-outline ki-pencil fs-3"></i>
                                                             </button>
-                                                        </form>
+                                                            <form action="{{ route('travel.itineraries.destroy', $activity->id) }}" method="POST" class="delete-form m-0">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button type="button" class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm swal-delete-btn" data-title="Remove activity: {{ $activity->activity }}?">
+                                                                        <i class="ki-outline ki-trash fs-3"></i>
+                                                                    </button>
+                                                            </form>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -288,6 +320,88 @@
                             </div>
                         </div>
                     @endforeach
+
+                    <!-- NEW Price Per Person Summary Table Card -->
+                    <div class="card card-flush shadow-sm mt-8" style="border-radius: 20px;">
+                        <div class="card-header pt-7">
+                            <h3 class="card-title align-items-start flex-column">
+                                <span class="card-label fw-bold text-gray-900 fs-3">Itinerary Price Per Person Summary</span>
+                                <span class="text-muted mt-1 fw-semibold fs-6">Consolidated budget analysis for {{ $trip->number_of_persons }} person(s)</span>
+                            </h3>
+                            <div class="card-toolbar">
+                                <span class="badge badge-light-primary fs-7 fw-bold px-3 py-2">
+                                    <i class="ki-outline ki-profile-user fs-6 text-primary me-1"></i> {{ $trip->number_of_persons }} Pax
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body pt-5">
+                            <div class="table-responsive">
+                                <table class="table table-row-dashed table-row-gray-300 align-middle gs-0 gy-4">
+                                    <thead>
+                                        <tr class="fw-bold text-muted text-uppercase fs-7">
+                                            <th class="min-w-100px">Day / Date</th>
+                                            <th class="min-w-200px">Activity & Venue</th>
+                                            <th class="min-w-150px text-end">Total Cost</th>
+                                            <th class="min-w-150px text-end">Price Per Person</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php 
+                                            $totalItineraryCost = 0; 
+                                            $totalItineraryCostPerPerson = 0;
+                                        @endphp
+                                        @forelse($trip->itineraries->sortBy(['day_number', 'time']) as $activity)
+                                            @php 
+                                                $totalItineraryCost += $activity->cost_estimate; 
+                                                $totalItineraryCostPerPerson += $activity->cost_per_person;
+                                            @endphp
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex flex-column">
+                                                        <span class="text-gray-900 fw-bold fs-6">Day {{ $activity->day_number }}</span>
+                                                        <span class="text-muted fw-semibold fs-7">{{ $activity->date }}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex flex-column">
+                                                        <span class="text-gray-900 fw-bold fs-6">{{ $activity->activity }}</span>
+                                                        <span class="text-muted fw-semibold fs-7">
+                                                            @if($activity->location)
+                                                                <i class="ki-outline ki-geolocation fs-8"></i> {{ $activity->location }}
+                                                            @else
+                                                                <span class="text-gray-400">No Location</span>
+                                                            @endif
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span class="text-gray-900 fw-bold">{{ $trip->currency }} {{ number_format($activity->cost_estimate, 0) }}</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span class="text-gray-900 fw-bold">{{ $trip->currency }} {{ number_format($activity->cost_per_person, 0) }}</span>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="4" class="text-center py-10 text-muted">
+                                                    No activities recorded to summarize.
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                    @if($trip->itineraries->count() > 0)
+                                        <tfoot>
+                                            <tr class="fw-bold fs-6 text-gray-900 bg-light-primary rounded">
+                                                <td colspan="2" class="ps-5 py-4">Total Cost Summary</td>
+                                                <td class="text-end py-4 text-primary fw-bolder">{{ $trip->currency }} {{ number_format($totalItineraryCost, 0) }}</td>
+                                                <td class="text-end pe-5 py-4 text-success fw-bolder">{{ $trip->currency }} {{ number_format($totalItineraryCostPerPerson, 0) }}</td>
+                                            </tr>
+                                        </tfoot>
+                                    @endif
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!--begin::Budget Tab-->
@@ -488,6 +602,97 @@
                         form.submit();
                     }
                 });
+            });
+
+            // Pricing logic for Add & Edit Itinerary Modals
+            function initPricingLogic(modalId) {
+                let modal = document.getElementById(modalId);
+                if (!modal) return;
+                
+                let persons = parseInt(modal.getAttribute('data-persons')) || 1;
+                let costTypeSelect = modal.querySelector('select[name="cost_type"]');
+                let costEstimateInput = modal.querySelector('input[name="cost_estimate"]');
+                let costPerPersonInput = modal.querySelector('input[name="cost_per_person"]');
+                
+                function updateFields() {
+                    let costType = costTypeSelect.value;
+                    if (costType === 'total') {
+                        costEstimateInput.removeAttribute('readonly');
+                        costEstimateInput.classList.remove('bg-light');
+                        costPerPersonInput.setAttribute('readonly', 'readonly');
+                        costPerPersonInput.classList.add('bg-light');
+                        
+                        let total = parseFloat(costEstimateInput.value) || 0;
+                        costPerPersonInput.value = (total / persons).toFixed(0);
+                    } else {
+                        costPerPersonInput.removeAttribute('readonly');
+                        costPerPersonInput.classList.remove('bg-light');
+                        costEstimateInput.setAttribute('readonly', 'readonly');
+                        costEstimateInput.classList.add('bg-light');
+                        
+                        let perPerson = parseFloat(costPerPersonInput.value) || 0;
+                        costEstimateInput.value = (perPerson * persons).toFixed(0);
+                    }
+                }
+                
+                costTypeSelect.addEventListener('change', updateFields);
+                
+                costEstimateInput.addEventListener('input', function() {
+                    if (costTypeSelect.value === 'total') {
+                        let total = parseFloat(costEstimateInput.value) || 0;
+                        costPerPersonInput.value = (total / persons).toFixed(0);
+                    }
+                });
+                
+                costPerPersonInput.addEventListener('input', function() {
+                    if (costTypeSelect.value === 'per_person') {
+                        let perPerson = parseFloat(costPerPersonInput.value) || 0;
+                        costEstimateInput.value = (perPerson * persons).toFixed(0);
+                    }
+                });
+                
+                // Expose updateFields function to window for manual triggers
+                if (modalId === 'kt_modal_edit_itinerary') {
+                    window.updateEditPricing = updateFields;
+                }
+                
+                // Initial run
+                updateFields();
+            }
+
+            initPricingLogic('kt_modal_add_itinerary');
+            initPricingLogic('kt_modal_edit_itinerary');
+
+            // Handle Edit Itinerary Button Click
+            $(document).on('click', '.edit-itinerary-btn', function() {
+                let btn = $(this);
+                let modal = $('#kt_modal_edit_itinerary');
+                let form = $('#edit_itinerary_form');
+                
+                // Set form action
+                form.attr('action', btn.data('update-url'));
+                
+                // Fill in inputs
+                modal.find('#edit_datetime').val(btn.data('datetime'));
+                // Trigger flatpickr if initialized
+                let fp = document.querySelector("#edit_datetime")._flatpickr;
+                if (fp) {
+                    fp.setDate(btn.data('datetime'));
+                }
+
+                modal.find('#edit_activity').val(btn.data('activity'));
+                modal.find('#edit_location').val(btn.data('location'));
+                modal.find('#edit_cost_type').val(btn.data('cost-type'));
+                modal.find('#edit_cost_estimate').val(btn.data('cost-estimate'));
+                modal.find('#edit_cost_per_person').val(btn.data('cost-per-person'));
+                
+                // Trigger update fields after population
+                if (typeof window.updateEditPricing === 'function') {
+                    window.updateEditPricing();
+                }
+                
+                // Show modal
+                modal.modal('show');
             });
 
         });

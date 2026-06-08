@@ -17,6 +17,7 @@ class TravelTrip extends Model
         'end_date',
         'total_budget',
         'currency',
+        'number_of_persons',
         'status',
         'cover_image'
     ];

@@ -1,8 +1,8 @@
 <!--begin::Modal - Add Itinerary-->
-<div class="modal fade" id="kt_modal_add_itinerary" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="kt_modal_add_itinerary" tabindex="-1" aria-hidden="true" data-persons="{{ $trip->number_of_persons ?? 1 }}">
     <div class="modal-dialog modal-dialog-centered mw-650px">
         <div class="modal-content">
-            <form action="{{ route('travel.itineraries.store') }}" method="POST">
+            <form action="{{ route('travel.itineraries.store') }}" method="POST" id="add_itinerary_form">
                 @csrf
                 <input type="hidden" name="trip_id" value="{{ $trip->id }}">
                 <div class="modal-header">
@@ -35,11 +35,27 @@
                             <input type="text" class="form-control form-control-solid ps-12" name="location" placeholder="e.g. Champ de Mars, Paris" />
                         </div>
                     </div>
-                    <div class="fv-row">
-                        <label class="fs-6 fw-semibold mb-2">Estimated Cost</label>
-                        <div class="input-group input-group-solid">
-                            <span class="input-group-text">{{ $trip->currency }}</span>
-                            <input type="number" class="form-control" name="cost_estimate" placeholder="0" />
+                    <div class="fv-row mb-8">
+                        <label class="required fs-6 fw-semibold mb-2">Pricing Setting</label>
+                        <select class="form-select form-select-solid" name="cost_type" id="add_cost_type" required>
+                            <option value="total" selected>Total Cost / Estimation</option>
+                            <option value="per_person">Price Per Person</option>
+                        </select>
+                    </div>
+                    <div class="row g-9 mb-8">
+                        <div class="col-md-6 fv-row" id="add_total_cost_container">
+                            <label class="fs-6 fw-semibold mb-2">Estimated Total Cost</label>
+                            <div class="input-group input-group-solid">
+                                <span class="input-group-text">{{ $trip->currency }}</span>
+                                <input type="number" class="form-control" name="cost_estimate" id="add_cost_estimate" placeholder="0" min="0" step="any" />
+                            </div>
+                        </div>
+                        <div class="col-md-6 fv-row" id="add_per_person_cost_container">
+                            <label class="fs-6 fw-semibold mb-2">Price Per Person</label>
+                            <div class="input-group input-group-solid">
+                                <span class="input-group-text">{{ $trip->currency }}</span>
+                                <input type="number" class="form-control" name="cost_per_person" id="add_cost_per_person" placeholder="0" min="0" step="any" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -51,6 +67,77 @@
         </div>
     </div>
 </div>
+
+<!--begin::Modal - Edit Itinerary-->
+<div class="modal fade" id="kt_modal_edit_itinerary" tabindex="-1" aria-hidden="true" data-persons="{{ $trip->number_of_persons ?? 1 }}">
+    <div class="modal-dialog modal-dialog-centered mw-650px">
+        <div class="modal-content">
+            <form action="" method="POST" id="edit_itinerary_form">
+                @csrf
+                @method('PUT')
+                <div class="modal-header">
+                    <h2 class="fw-bold">Edit Activity</h2>
+                    <div class="btn btn-icon btn-sm btn-active-icon-primary" data-bs-dismiss="modal">
+                        <i class="ki-outline ki-cross fs-1"></i>
+                    </div>
+                </div>
+                <div class="modal-body py-10 px-lg-17">
+                    <div class="row g-9 mb-8">
+                        <div class="col-md-12 fv-row">
+                            <label class="required fs-6 fw-semibold mb-2">Planned Date & Time</label>
+                            <div class="position-relative d-flex align-items-center">
+                                <i class="ki-outline ki-calendar-8 fs-3 position-absolute ms-4"></i>
+                                <input type="text" 
+                                    class="form-control form-control-solid ps-12 kt_flatpickr_datetime" placeholder="Select date time..."
+                                    name="datetime" id="edit_datetime"
+                                    required />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fv-row mb-8">
+                        <label class="required fs-6 fw-semibold mb-2">Activity Name</label>
+                        <input type="text" class="form-control form-control-solid text-gray-900" name="activity" id="edit_activity" placeholder="e.g. Visit Eiffel Tower" required />
+                    </div>
+                    <div class="fv-row mb-8">
+                        <label class="fs-6 fw-semibold mb-2">Location Venue</label>
+                        <div class="position-relative d-flex align-items-center">
+                            <i class="ki-outline ki-geolocation fs-3 position-absolute ms-4"></i>
+                            <input type="text" class="form-control form-control-solid ps-12" name="location" id="edit_location" placeholder="e.g. Champ de Mars, Paris" />
+                        </div>
+                    </div>
+                    <div class="fv-row mb-8">
+                        <label class="required fs-6 fw-semibold mb-2">Pricing Setting</label>
+                        <select class="form-select form-select-solid" name="cost_type" id="edit_cost_type" required>
+                            <option value="total">Total Cost / Estimation</option>
+                            <option value="per_person">Price Per Person</option>
+                        </select>
+                    </div>
+                    <div class="row g-9 mb-8">
+                        <div class="col-md-6 fv-row" id="edit_total_cost_container">
+                            <label class="fs-6 fw-semibold mb-2">Estimated Total Cost</label>
+                            <div class="input-group input-group-solid">
+                                <span class="input-group-text">{{ $trip->currency }}</span>
+                                <input type="number" class="form-control" name="cost_estimate" id="edit_cost_estimate" placeholder="0" min="0" step="any" />
+                            </div>
+                        </div>
+                        <div class="col-md-6 fv-row" id="edit_per_person_cost_container">
+                            <label class="fs-6 fw-semibold mb-2">Price Per Person</label>
+                            <div class="input-group input-group-solid">
+                                <span class="input-group-text">{{ $trip->currency }}</span>
+                                <input type="number" class="form-control" name="cost_per_person" id="edit_cost_per_person" placeholder="0" min="0" step="any" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer flex-center">
+                    <button type="button" class="btn btn-light me-3" data-bs-dismiss="modal">Discard</button>
+                    <button type="submit" class="btn btn-primary px-10">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 
 <!--begin::Modal - Add Budget-->
 <div class="modal fade" id="kt_modal_add_budget" tabindex="-1" aria-hidden="true">

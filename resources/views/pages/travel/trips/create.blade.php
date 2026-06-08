@@ -148,7 +148,7 @@
                         <!--begin::Input group-->
                         <div class="row g-9 mb-10">
                             <!--begin::Col-->
-                            <div class="col-md-6 fv-row">
+                            <div class="col-md-4 fv-row">
                                 <label class="required fs-6 fw-semibold mb-2">Financial Allocation (Budget)</label>
                                 <div class="input-group input-group-solid">
                                     <span class="input-group-text"><i class="ki-outline ki-wallet fs-3"></i></span>
@@ -157,7 +157,7 @@
                             </div>
                             <!--end::Col-->
                             <!--begin::Col-->
-                            <div class="col-md-6 fv-row">
+                            <div class="col-md-4 fv-row">
                                 <label class="required fs-6 fw-semibold mb-2">Primary Currency</label>
                                 <select class="form-select form-select-solid" name="currency" data-control="select2" data-placeholder="Select currency" data-minimum-results-for-search="0">
                                     <option value="IDR" selected>IDR - Indonesian Rupiah</option>
@@ -166,6 +166,15 @@
                                     <option value="SGD">SGD - Singapore Dollar</option>
                                     <option value="EUR">EUR - Euro</option>
                                 </select>
+                            </div>
+                            <!--end::Col-->
+                            <!--begin::Col-->
+                            <div class="col-md-4 fv-row">
+                                <label class="required fs-6 fw-semibold mb-2">Number of Persons</label>
+                                <div class="input-group input-group-solid">
+                                    <span class="input-group-text"><i class="ki-outline ki-people fs-3"></i></span>
+                                    <input type="number" class="form-control" placeholder="1" name="number_of_persons" value="1" min="1" required />
+                                </div>
                             </div>
                             <!--end::Col-->
                         </div>

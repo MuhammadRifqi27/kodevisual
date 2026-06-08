@@ -17,7 +17,9 @@ class TravelItinerary extends Model
         'activity',
         'location',
         'notes',
-        'cost_estimate'
+        'cost_estimate',
+        'cost_type',
+        'cost_per_person'
     ];
 
     public function trip()
