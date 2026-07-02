@@ -16,6 +16,7 @@ class TravelItineraryController extends Controller
             'trip_id'        => 'required|exists:travel_trips,id',
             'datetime'       => 'required|string', // Format: YYYY-MM-DD HH:mm
             'activity'       => 'required|string|max:255',
+            'description'    => 'nullable|string',
             'location'       => 'nullable|string|max:255',
             'cost_type'      => 'required|in:total,per_person',
             'cost_estimate'  => 'nullable|numeric|min:0',
@@ -68,6 +69,7 @@ class TravelItineraryController extends Controller
         $validated = $request->validate([
             'datetime'        => 'required|string',
             'activity'        => 'required|string|max:255',
+            'description'     => 'nullable|string',
             'location'        => 'nullable|string|max:255',
             'cost_type'       => 'required|in:total,per_person',
             'cost_estimate'   => 'nullable|numeric|min:0',

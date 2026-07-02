@@ -46,6 +46,10 @@
                         <th class="min-w-50px">No</th>
                         <th class="min-w-100px">Date</th>
                         <th class="min-w-100px">Type</th>
+                        <th class="min-w-100px">{{ optional($portfolio->investment)->type === 'stock' ? 'Emiten' : 'Asset' }}</th>
+                        @if(optional($portfolio->investment)->type === 'stock')
+                        <th class="min-w-80px">Lot</th>
+                        @endif
                         <th class="min-w-150px">Amount</th>
                         <th class="min-w-200px">Description</th>
                         <th class="text-end min-w-100px">Actions</th>
@@ -88,6 +92,20 @@
                             </select>
                         </div>
 
+                        @if(in_array(optional($portfolio->investment)->type, ['crypto', 'stock']))
+                        <div class="fv-row mb-7">
+                            <label class="fs-6 fw-semibold mb-2">{{ $portfolio->investment->type === 'stock' ? 'Emiten' : 'Asset' }}</label>
+                            <input type="text" class="form-control form-control-solid" name="asset" id="trx_asset" placeholder="{{ $portfolio->investment->type === 'stock' ? 'e.g. PRDL' : 'e.g. BITCOIN' }}" />
+                        </div>
+                        @endif
+
+                        @if(optional($portfolio->investment)->type === 'stock')
+                        <div class="fv-row mb-7">
+                            <label class="fs-6 fw-semibold mb-2">Lot</label>
+                            <input type="number" min="0" step="1" class="form-control form-control-solid" name="lot" id="trx_lot" placeholder="e.g. 5" />
+                        </div>
+                        @endif
+
                         <div class="fv-row mb-7">
                             <label class="required fs-6 fw-semibold mb-2">Amount</label>
                             <input type="number" class="form-control form-control-solid" placeholder="0" name="amount" id="trx_amount" required min="0" />
@@ -122,6 +140,10 @@
                     {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                     {data: 'date', name: 'date'},
                     {data: 'type', name: 'type'},
+                    {data: 'asset', name: 'asset'},
+                    @if(optional($portfolio->investment)->type === 'stock')
+                    {data: 'lot', name: 'lot'},
+                    @endif
                     {data: 'amount', name: 'amount'},
                     {data: 'description', name: 'description'},
                     {data: 'action', name: 'action', orderable: false, searchable: false, className: "text-end"},
@@ -146,14 +168,18 @@
                 let date = $(this).data('date');
                 let type = $(this).data('type');
                 let amount = $(this).data('amount');
+                let asset = $(this).data('asset');
+                let lot = $(this).data('lot');
                 let desc = $(this).data('description');
 
                 $('#trx_id').val(id);
                 $('#trx_date').val(date);
                 $('#trx_type').val(type).trigger('change');
                 $('#trx_amount').val(amount);
+                $('#trx_asset').val(asset);
+                $('#trx_lot').val(lot);
                 $('#trx_description').val(desc);
-                
+
                 $('#modal_transaction_title').text('Edit Transaction');
                 $('#modal_transaction').modal('show');
             });

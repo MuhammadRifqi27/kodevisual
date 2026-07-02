@@ -12,6 +12,7 @@ class FinanceInvestment extends Model
     protected $fillable = [
         'name',
         'code',
+        'type',
         'description',
     ];
 

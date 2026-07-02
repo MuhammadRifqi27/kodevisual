@@ -16,6 +16,8 @@ class FinanceTransaction extends Model
         'finance_category_id',
         'finance_investment_id',
         'to_finance_investment_id',
+        'asset',
+        'lot',
         'amount',
         'description',
     ];

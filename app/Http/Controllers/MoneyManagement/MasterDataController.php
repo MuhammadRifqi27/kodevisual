@@ -80,12 +80,17 @@ class MasterDataController extends Controller
             ->addColumn('code', function($row) {
                 return $row->code ? '<span class="badge badge-light-primary">'.$row->code.'</span>' : '-';
             })
+            ->editColumn('type', function($row) {
+                $colors = ['crypto' => 'warning', 'stock' => 'info', 'other' => 'secondary'];
+                $color = $colors[$row->type] ?? 'secondary';
+                return '<span class="badge badge-light-'.$color.'">'.ucfirst($row->type).'</span>';
+            })
             ->addColumn('action', function($row){
-                $btn = '<button data-id="'.$row->id.'" data-name="'.$row->name.'" data-code="'.$row->code.'" data-description="'.$row->description.'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3 edit-investment-btn"><i class="ki-duotone ki-pencil fs-3"><span class="path1"></span><span class="path2"></span></i></button>';
+                $btn = '<button data-id="'.$row->id.'" data-name="'.$row->name.'" data-code="'.$row->code.'" data-type="'.$row->type.'" data-description="'.$row->description.'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3 edit-investment-btn"><i class="ki-duotone ki-pencil fs-3"><span class="path1"></span><span class="path2"></span></i></button>';
                 $btn .= '<button data-id="'.$row->id.'" class="btn btn-icon btn-active-light-danger w-30px h-30px delete-investment-btn"><i class="ki-duotone ki-trash fs-3"><span class="path1"></span><span class="path2"></span><span class="path3"></span><span class="path4"></span><span class="path5"></span></i></button>';
                 return $btn;
             })
-            ->rawColumns(['action', 'name', 'code'])
+            ->rawColumns(['action', 'name', 'code', 'type'])
             ->make(true);
     }
 
@@ -130,6 +135,7 @@ class MasterDataController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
+            'type' => 'required|in:crypto,stock,other',
             'description' => 'nullable|string',
         ]);
 
@@ -143,6 +149,7 @@ class MasterDataController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
+            'type' => 'required|in:crypto,stock,other',
             'description' => 'nullable|string',
         ]);
 

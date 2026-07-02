@@ -36,6 +36,10 @@
                         </div>
                     </div>
                     <div class="fv-row mb-8">
+                        <label class="fs-6 fw-semibold mb-2">Description</label>
+                        <textarea class="form-control form-control-solid text-gray-900" name="description" rows="3" placeholder="Enter activity details or description..."></textarea>
+                    </div>
+                    <div class="fv-row mb-8">
                         <label class="required fs-6 fw-semibold mb-2">Pricing Setting</label>
                         <select class="form-select form-select-solid" name="cost_type" id="add_cost_type" required>
                             <option value="total" selected>Total Cost / Estimation</option>
@@ -104,6 +108,10 @@
                             <i class="ki-outline ki-geolocation fs-3 position-absolute ms-4"></i>
                             <input type="text" class="form-control form-control-solid ps-12" name="location" id="edit_location" placeholder="e.g. Champ de Mars, Paris" />
                         </div>
+                    </div>
+                    <div class="fv-row mb-8">
+                        <label class="fs-6 fw-semibold mb-2">Description</label>
+                        <textarea class="form-control form-control-solid text-gray-900" name="description" id="edit_description" rows="3" placeholder="Enter activity details or description..."></textarea>
                     </div>
                     <div class="fv-row mb-8">
                         <label class="required fs-6 fw-semibold mb-2">Pricing Setting</label>

@@ -212,85 +212,219 @@ class TravelTripController extends Controller
             ->findOrFail($id);
 
         $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="trip_' . str_replace(' ', '_', $trip->title) . '_full_' . date('Ymd_His') . '.csv"',
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="trip_' . str_replace(' ', '_', $trip->title) . '_full_' . date('Ymd_His') . '.xlsx"',
             'Pragma' => 'no-cache',
             'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
             'Expires' => '0'
         ];
 
         $callback = function() use ($trip) {
-            $file = fopen('php://output', 'w');
-            
-            // UTF-8 BOM
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Trip Full Summary');
 
-            // Section 1: Trip Summary
-            fputcsv($file, ['EXPEDITION DETAILED SUMMARY']);
-            fputcsv($file, []);
-            fputcsv($file, ['ID', 'Title', 'Destination', 'Start Date', 'End Date', 'Total Budget', 'Currency', 'Number of Persons', 'Status']);
-            fputcsv($file, [
-                $trip->id,
-                $trip->title,
-                $trip->destination,
-                $trip->start_date,
-                $trip->end_date,
-                $trip->total_budget,
-                $trip->currency,
-                $trip->number_of_persons,
-                ucfirst($trip->status)
-            ]);
-            fputcsv($file, []);
-            fputcsv($file, []);
+            // Default font
+            $spreadsheet->getDefaultStyle()->getFont()->setName('Arial')->setSize(10);
 
-            // Section 2: Itinerary
-            fputcsv($file, ['ITINERARY SCHEDULE']);
-            fputcsv($file, []);
-            fputcsv($file, ['Day', 'Date', 'Time', 'Activity', 'Location', 'Notes', 'Total Cost Estimate (' . $trip->currency . ')', 'Price Per Person (' . $trip->currency . ')']);
-            foreach ($trip->itineraries->sortBy(['day_number', 'time']) as $item) {
-                fputcsv($file, [
-                    'Day ' . $item->day_number,
-                    $item->date,
-                    $item->time ? substr($item->time, 0, 5) : '--:--',
-                    $item->activity,
-                    $item->location,
-                    $item->notes,
-                    $item->cost_estimate,
-                    $item->cost_per_person
-                ]);
+            // Universal style definitions
+            $formalHeaderStyle = [
+                'font' => [
+                    'bold' => true,
+                    'color' => ['argb' => 'FFFFFFFF'],
+                    'size' => 10,
+                ],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['argb' => '1F4E79'], // Dark Corporate Navy Blue
+                ],
+                'alignment' => [
+                    'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                    'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                ],
+            ];
+
+            $gridBorderStyle = [
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['argb' => 'BFBFBF'], // Soft grey border
+                    ],
+                ],
+            ];
+
+            // Title Block
+            $sheet->setCellValue('A1', 'EXPEDITION DETAILED SUMMARY');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('1F4E79'));
+
+            // Section 1: Trip Summary Table
+            $sheet->setCellValue('A3', 'TRIP SUMMARY');
+            $sheet->getStyle('A3')->getFont()->setBold(true)->setSize(11)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('1F4E79'));
+
+            $summaryHeaders = ['ID', 'Title', 'Destination', 'Start Date', 'End Date', 'Total Budget', 'Currency', 'Number of Persons', 'Status'];
+            foreach ($summaryHeaders as $index => $sh) {
+                $col = chr(65 + $index);
+                $sheet->setCellValue($col . '4', $sh);
             }
-            fputcsv($file, []);
-            fputcsv($file, []);
+            $sheet->getStyle('A4:I4')->applyFromArray($formalHeaderStyle);
+
+            $sheet->setCellValue('A5', $trip->id);
+            $sheet->setCellValue('B5', $trip->title);
+            $sheet->setCellValue('C5', $trip->destination);
+            $sheet->setCellValue('D5', $trip->start_date);
+            $sheet->setCellValue('E5', $trip->end_date);
+            $sheet->setCellValue('F5', $trip->total_budget);
+            $sheet->setCellValue('G5', $trip->currency);
+            $sheet->setCellValue('H5', $trip->number_of_persons);
+            $sheet->setCellValue('I5', ucfirst($trip->status));
+
+            $sheet->getStyle('F5')->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle('A5:I5')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            $sheet->getStyle('B5:C5')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+
+            $sheet->getStyle('A4:I5')->applyFromArray($gridBorderStyle);
+
+            // Section 2: Itinerary Schedule
+            $currentRow = 7;
+            $sheet->setCellValue('A' . $currentRow, 'ITINERARY SCHEDULE');
+            $sheet->getStyle('A' . $currentRow)->getFont()->setBold(true)->setSize(11)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('1F4E79'));
+
+            $currentRow++; // Row 8 for Itinerary Headers
+            $itineraryHeaders = ['Day', 'Date', 'Time', 'Activity', 'Description', 'Location', 'Notes', 'Total Cost Estimate (' . $trip->currency . ')', 'Cost Per Person (' . $trip->currency . ')'];
+            foreach ($itineraryHeaders as $index => $ih) {
+                $col = chr(65 + $index);
+                $sheet->setCellValue($col . $currentRow, $ih);
+            }
+            $sheet->getStyle("A{$currentRow}:I{$currentRow}")->applyFromArray($formalHeaderStyle);
+
+            $startItineraryDataRow = $currentRow + 1;
+            $itineraries = $trip->itineraries->sortBy(['day_number', 'time']);
+            $groupedItineraries = $itineraries->groupBy('day_number');
+            $itineraryDataRow = $startItineraryDataRow;
+
+            foreach ($groupedItineraries as $day => $items) {
+                $count = $items->count();
+                $firstItem = $items->first();
+
+                if ($count > 1) {
+                    $sheet->mergeCells("A{$itineraryDataRow}:A" . ($itineraryDataRow + $count - 1));
+                    $sheet->mergeCells("B{$itineraryDataRow}:B" . ($itineraryDataRow + $count - 1));
+                }
+
+                $sheet->setCellValue("A{$itineraryDataRow}", 'Day ' . $day);
+                $sheet->setCellValue("B{$itineraryDataRow}", $firstItem->date);
+
+                $sheet->getStyle("A{$itineraryDataRow}:A" . ($itineraryDataRow + $count - 1))->getAlignment()
+                    ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("B{$itineraryDataRow}:B" . ($itineraryDataRow + $count - 1))->getAlignment()
+                    ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
+                foreach ($items->sortBy('time') as $index => $item) {
+                    $rowIdx = $itineraryDataRow + $index;
+                    $sheet->setCellValue("C{$rowIdx}", $item->time ? substr($item->time, 0, 5) : '--:--');
+                    $sheet->setCellValue("D{$rowIdx}", $item->activity);
+                    $sheet->setCellValue("E{$rowIdx}", $item->description);
+                    $sheet->setCellValue("F{$rowIdx}", $item->location);
+                    $sheet->setCellValue("G{$rowIdx}", $item->notes);
+                    $sheet->setCellValue("H{$rowIdx}", $item->cost_estimate);
+                    $sheet->setCellValue("I{$rowIdx}", $item->cost_per_person);
+
+                    $sheet->getStyle("C{$rowIdx}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle("H{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
+                    $sheet->getStyle("I{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
+                }
+                $itineraryDataRow += $count;
+            }
+
+            if ($itineraries->isEmpty()) {
+                $sheet->setCellValue("A{$itineraryDataRow}", 'No activities recorded');
+                $sheet->mergeCells("A{$itineraryDataRow}:I{$itineraryDataRow}");
+                $sheet->getStyle("A{$itineraryDataRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $itineraryDataRow++;
+            }
+
+            $sheet->getStyle("A" . ($startItineraryDataRow - 1) . ":I" . ($itineraryDataRow - 1))->applyFromArray($gridBorderStyle);
 
             // Section 3: Budget Allocations
-            fputcsv($file, ['BUDGET ALLOCATIONS']);
-            fputcsv($file, []);
-            fputcsv($file, ['Category', 'Amount Allocated (' . $trip->currency . ')', 'Notes']);
+            $currentRow = $itineraryDataRow + 2;
+            $sheet->setCellValue('A' . $currentRow, 'BUDGET ALLOCATIONS');
+            $sheet->getStyle('A' . $currentRow)->getFont()->setBold(true)->setSize(11)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('1F4E79'));
+
+            $currentRow++; // Budget headers row
+            $budgetHeaders = ['Category', 'Amount Allocated (' . $trip->currency . ')', 'Notes'];
+            foreach ($budgetHeaders as $index => $bh) {
+                $col = chr(65 + $index);
+                $sheet->setCellValue($col . $currentRow, $bh);
+            }
+            $sheet->getStyle("A{$currentRow}:C{$currentRow}")->applyFromArray($formalHeaderStyle);
+            $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+
+            $startBudgetDataRow = $currentRow + 1;
+            $budgetDataRow = $startBudgetDataRow;
             foreach ($trip->budgets as $budget) {
-                fputcsv($file, [
-                    $budget->category,
-                    $budget->amount,
-                    $budget->notes
-                ]);
-            }
-            fputcsv($file, []);
-            fputcsv($file, []);
+                $sheet->setCellValue("A{$budgetDataRow}", $budget->category);
+                $sheet->setCellValue("B{$budgetDataRow}", $budget->amount);
+                $sheet->setCellValue("C{$budgetDataRow}", $budget->notes);
 
-            // Section 4: Expenses Feed
-            fputcsv($file, ['EXPENSES RECORDED']);
-            fputcsv($file, []);
-            fputcsv($file, ['Date', 'Category', 'Description', 'Amount Spent (' . $trip->currency . ')', 'Pre-Trip?']);
+                $sheet->getStyle("B{$budgetDataRow}")->getNumberFormat()->setFormatCode('#,##0');
+                $budgetDataRow++;
+            }
+
+            if ($trip->budgets->isEmpty()) {
+                $sheet->setCellValue("A{$budgetDataRow}", 'No budget allocations recorded');
+                $sheet->mergeCells("A{$budgetDataRow}:C{$budgetDataRow}");
+                $sheet->getStyle("A{$budgetDataRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $budgetDataRow++;
+            }
+
+            $sheet->getStyle("A" . ($startBudgetDataRow - 1) . ":C" . ($budgetDataRow - 1))->applyFromArray($gridBorderStyle);
+
+            // Section 4: Expenses Recorded
+            $currentRow = $budgetDataRow + 2;
+            $sheet->setCellValue('A' . $currentRow, 'EXPENSES RECORDED');
+            $sheet->getStyle('A' . $currentRow)->getFont()->setBold(true)->setSize(11)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('1F4E79'));
+
+            $currentRow++; // Expenses headers row
+            $expenseHeaders = ['Date', 'Category', 'Description', 'Amount Spent (' . $trip->currency . ')', 'Pre-Trip?'];
+            foreach ($expenseHeaders as $index => $eh) {
+                $col = chr(65 + $index);
+                $sheet->setCellValue($col . $currentRow, $eh);
+            }
+            $sheet->getStyle("A{$currentRow}:E{$currentRow}")->applyFromArray($formalHeaderStyle);
+
+            $startExpenseDataRow = $currentRow + 1;
+            $expenseDataRow = $startExpenseDataRow;
             foreach ($trip->expenses->sortBy('date') as $expense) {
-                fputcsv($file, [
-                    $expense->date,
-                    $expense->category,
-                    $expense->description,
-                    $expense->amount,
-                    $expense->is_pre_trip ? 'Yes' : 'No'
-                ]);
+                $sheet->setCellValue("A{$expenseDataRow}", $expense->date);
+                $sheet->setCellValue("B{$expenseDataRow}", $expense->category);
+                $sheet->setCellValue("C{$expenseDataRow}", $expense->description);
+                $sheet->setCellValue("D{$expenseDataRow}", $expense->amount);
+                $sheet->setCellValue("E{$expenseDataRow}", $expense->is_pre_trip ? 'Yes' : 'No');
+
+                $sheet->getStyle("A{$expenseDataRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("E{$expenseDataRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("D{$expenseDataRow}")->getNumberFormat()->setFormatCode('#,##0');
+                $expenseDataRow++;
             }
 
-            fclose($file);
+            if ($trip->expenses->isEmpty()) {
+                $sheet->setCellValue("A{$expenseDataRow}", 'No expenses recorded');
+                $sheet->mergeCells("A{$expenseDataRow}:E{$expenseDataRow}");
+                $sheet->getStyle("A{$expenseDataRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $expenseDataRow++;
+            }
+
+            $sheet->getStyle("A" . ($startExpenseDataRow - 1) . ":E" . ($expenseDataRow - 1))->applyFromArray($gridBorderStyle);
+
+            // Auto column widths for all columns
+            foreach (range('A', 'I') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
         };
 
         return response()->stream($callback, 200, $headers);
@@ -303,47 +437,136 @@ class TravelTripController extends Controller
             ->findOrFail($id);
 
         $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="trip_' . str_replace(' ', '_', $trip->title) . '_itinerary_' . date('Ymd_His') . '.csv"',
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="trip_' . str_replace(' ', '_', $trip->title) . '_itinerary_' . date('Ymd_His') . '.xlsx"',
             'Pragma' => 'no-cache',
             'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
             'Expires' => '0'
         ];
 
         $callback = function() use ($trip) {
-            $file = fopen('php://output', 'w');
-            
-            // UTF-8 BOM
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Itinerary');
 
-            fputcsv($file, ['ITINERARY SCHEDULE FOR ' . strtoupper($trip->title)]);
-            fputcsv($file, ['Destination: ' . $trip->destination]);
-            fputcsv($file, ['Participants: ' . $trip->number_of_persons . ' person(s)']);
-            fputcsv($file, []);
+            // Default font
+            $spreadsheet->getDefaultStyle()->getFont()->setName('Arial')->setSize(10);
 
-            fputcsv($file, ['Day', 'Date', 'Time', 'Activity', 'Location', 'Notes', 'Total Cost Estimate (' . $trip->currency . ')', 'Cost Per Person (' . $trip->currency . ')']);
-            
+            // Title block
+            $sheet->setCellValue('A1', 'ITINERARY SCHEDULE FOR ' . strtoupper($trip->title));
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('1F4E79'));
+
+            $sheet->setCellValue('A2', 'Destination: ' . $trip->destination . ' | Participants: ' . $trip->number_of_persons . ' person(s)');
+            $sheet->getStyle('A2')->getFont()->setItalic(true);
+
+            // Headers
+            $headersRow = ['Day', 'Date', 'Time', 'Activity', 'Description', 'Location', 'Notes', 'Total Cost Estimate (' . $trip->currency . ')', 'Cost Per Person (' . $trip->currency . ')'];
+            $colLetter = 'A';
+            foreach ($headersRow as $headerText) {
+                $sheet->setCellValue($colLetter . '4', $headerText);
+                $colLetter++;
+            }
+
+            // Style headers
+            $headerRange = 'A4:I4';
+            $sheet->getStyle($headerRange)->getFont()->setBold(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_WHITE));
+            $sheet->getStyle($headerRange)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('1F4E79'); // Formal Dark Navy Blue
+            $sheet->getStyle($headerRange)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            // Data
+            $itineraries = $trip->itineraries->sortBy(['day_number', 'time']);
+            $grouped = $itineraries->groupBy('day_number');
+
+            $currentRow = 5;
             $totalCost = 0;
             $totalCostPerPerson = 0;
-            foreach ($trip->itineraries->sortBy(['day_number', 'time']) as $item) {
-                $totalCost += $item->cost_estimate;
-                $totalCostPerPerson += $item->cost_per_person;
-                fputcsv($file, [
-                    'Day ' . $item->day_number,
-                    $item->date,
-                    $item->time ? substr($item->time, 0, 5) : '--:--',
-                    $item->activity,
-                    $item->location,
-                    $item->notes,
-                    $item->cost_estimate,
-                    $item->cost_per_person
-                ]);
-            }
-            
-            fputcsv($file, []);
-            fputcsv($file, ['TOTAL', '', '', '', '', '', $totalCost, $totalCostPerPerson]);
 
-            fclose($file);
+            foreach ($grouped as $day => $items) {
+                $count = $items->count();
+                $firstItem = $items->first();
+
+                // Merge Day and Date cells vertically if count > 1
+                if ($count > 1) {
+                    $sheet->mergeCells("A{$currentRow}:A" . ($currentRow + $count - 1));
+                    $sheet->mergeCells("B{$currentRow}:B" . ($currentRow + $count - 1));
+                }
+
+                $sheet->setCellValue("A{$currentRow}", 'Day ' . $day);
+                $sheet->setCellValue("B{$currentRow}", $firstItem->date);
+
+                $sheet->getStyle("A{$currentRow}:A" . ($currentRow + $count - 1))->getAlignment()
+                    ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("B{$currentRow}:B" . ($currentRow + $count - 1))->getAlignment()
+                    ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
+                foreach ($items->sortBy('time') as $index => $item) {
+                    $rowIdx = $currentRow + $index;
+                    $sheet->setCellValue("C{$rowIdx}", $item->time ? substr($item->time, 0, 5) : '--:--');
+                    $sheet->setCellValue("D{$rowIdx}", $item->activity);
+                    $sheet->setCellValue("E{$rowIdx}", $item->description);
+                    $sheet->setCellValue("F{$rowIdx}", $item->location);
+                    $sheet->setCellValue("G{$rowIdx}", $item->notes);
+                    $sheet->setCellValue("H{$rowIdx}", $item->cost_estimate);
+                    $sheet->setCellValue("I{$rowIdx}", $item->cost_per_person);
+
+                    $sheet->getStyle("C{$rowIdx}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle("H{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
+                    $sheet->getStyle("I{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
+
+                    $totalCost += $item->cost_estimate;
+                    $totalCostPerPerson += $item->cost_per_person;
+                }
+
+                $currentRow += $count;
+            }
+
+            // Total row
+            $sheet->setCellValue("A{$currentRow}", 'TOTAL');
+            $sheet->mergeCells("A{$currentRow}:G{$currentRow}");
+            $sheet->getStyle("A{$currentRow}")->getFont()->setBold(true);
+            $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+
+            $sheet->setCellValue("H{$currentRow}", $totalCost);
+            $sheet->setCellValue("I{$currentRow}", $totalCostPerPerson);
+            $sheet->getStyle("H{$currentRow}:I{$currentRow}")->getFont()->setBold(true);
+            $sheet->getStyle("H{$currentRow}")->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle("I{$currentRow}")->getNumberFormat()->setFormatCode('#,##0');
+
+            // Apply borders to table
+            $styleArray = [
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['argb' => 'BFBFBF'],
+                    ],
+                ],
+            ];
+            $sheet->getStyle('A4:I' . $currentRow)->applyFromArray($styleArray);
+
+            // Double line bottom border for total row
+            $totalRowStyle = [
+                'borders' => [
+                    'bottom' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_DOUBLE,
+                        'color' => ['argb' => '000000'],
+                    ],
+                    'top' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['argb' => '000000'],
+                    ],
+                ],
+            ];
+            $sheet->getStyle("A{$currentRow}:I{$currentRow}")->applyFromArray($totalRowStyle);
+
+            // Set auto column width
+            foreach (range('A', 'I') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
         };
 
         return response()->stream($callback, 200, $headers);

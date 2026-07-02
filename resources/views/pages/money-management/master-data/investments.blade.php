@@ -33,6 +33,7 @@
                         <th class="min-w-50px">No</th>
                         <th class="min-w-150px">Name</th>
                         <th class="min-w-100px">Code</th>
+                        <th class="min-w-100px">Type</th>
                         <th class="min-w-200px">Description</th>
                         <th class="text-end min-w-100px">Actions</th>
                     </tr>
@@ -66,6 +67,14 @@
                             <input type="text" class="form-control form-control-solid" placeholder="Code (e.g. BTC, NASDAQ)" name="code" id="inv_code" />
                         </div>
                         <div class="fv-row mb-7">
+                            <label class="required fs-6 fw-semibold mb-2">Type</label>
+                            <select class="form-select form-select-solid" name="type" id="inv_type" required>
+                                <option value="other">Other</option>
+                                <option value="crypto">Crypto</option>
+                                <option value="stock">Stock</option>
+                            </select>
+                        </div>
+                        <div class="fv-row mb-7">
                             <label class="fs-6 fw-semibold mb-2">Description</label>
                             <textarea class="form-control form-control-solid" rows="3" name="description" id="inv_description" placeholder="Optional description"></textarea>
                         </div>
@@ -94,6 +103,7 @@
                     {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                     {data: 'name', name: 'name'},
                     {data: 'code', name: 'code'},
+                    {data: 'type', name: 'type'},
                     {data: 'description', name: 'description'},
                     {data: 'action', name: 'action', orderable: false, searchable: false, className: "text-end"},
                 ]
@@ -106,6 +116,7 @@
             $('#btn_add_investment').click(function() {
                 $('#form_investment')[0].reset();
                 $('#inv_id').val('');
+                $('#inv_type').val('other');
                 $('#modal_investment_title').text('Add Investment');
                 $('#modal_investment').modal('show');
             });
@@ -115,13 +126,15 @@
                 let id = $(this).data('id');
                 let name = $(this).data('name');
                 let code = $(this).data('code');
+                let type = $(this).data('type');
                 let desc = $(this).data('description');
 
                 $('#inv_id').val(id);
                 $('#inv_name').val(name);
                 $('#inv_code').val(code);
+                $('#inv_type').val(type);
                 $('#inv_description').val(desc);
-                
+
                 $('#modal_investment_title').text('Edit Investment');
                 $('#modal_investment').modal('show');
             });

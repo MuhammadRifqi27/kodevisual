@@ -12,6 +12,8 @@ class FinanceInvestmentTransaction extends Model
     protected $fillable = [
         'user_id',
         'finance_investment_id',
+        'asset',
+        'lot',
         'date',
         'type',
         'amount',

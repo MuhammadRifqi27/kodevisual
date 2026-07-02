@@ -15,6 +15,11 @@ class FinancePortfolio extends Model
         'account_name',
         'account_number',
         'description',
+        'account_investment',
+    ];
+
+    protected $casts = [
+        'account_investment' => 'boolean',
     ];
 
     protected $appends = ['balance'];

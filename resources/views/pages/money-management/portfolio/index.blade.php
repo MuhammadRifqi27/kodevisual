@@ -20,7 +20,7 @@
                 </div>
             </div>
             <div class="card-toolbar">
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal_add_portfolio">
+                <button type="button" class="btn btn-primary" id="btn_add_portfolio">
                     <i class="ki-duotone ki-plus fs-2"></i> Add New Account
                 </button>
             </div>
@@ -42,12 +42,12 @@
     </div>
     <!--end::Card-->
 
-    <!-- Modal Add Portfolio -->
+    <!-- Modal Add/Edit Portfolio -->
     <div class="modal fade" id="modal_add_portfolio" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered mw-500px">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2 class="fw-bold">Register My Account</h2>
+                    <h2 class="fw-bold" id="modal_portfolio_title">Register My Account</h2>
                     <div class="btn btn-icon btn-sm btn-active-icon-primary" data-bs-dismiss="modal">
                         <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
                     </div>
@@ -55,9 +55,10 @@
                 <div class="modal-body py-10 px-lg-17">
                     <form id="form_add_portfolio">
                         @csrf
+                        <input type="hidden" name="id" id="portfolio_id" />
                         <div class="fv-row mb-7">
                             <label class="required fs-6 fw-semibold mb-2">Platform / Bank Provider</label>
-                            <select name="finance_investment_id" class="form-select form-select-solid" data-control="select2" data-dropdown-parent="#modal_add_portfolio" data-placeholder="Select Provider" data-minimum-results-for-search="0">
+                            <select name="finance_investment_id" id="portfolio_investment_id" class="form-select form-select-solid" data-control="select2" data-dropdown-parent="#modal_add_portfolio" data-placeholder="Select Provider" data-minimum-results-for-search="0">
                                 <option></option>
                                 @foreach($globalInvestments as $inv)
                                     <option value="{{ $inv->id }}">{{ $inv->name }} ({{ $inv->code }})</option>
@@ -66,15 +67,23 @@
                         </div>
                         <div class="fv-row mb-7">
                             <label class="required fs-6 fw-semibold mb-2">My Account Name</label>
-                            <input type="text" name="account_name" class="form-control form-control-solid" placeholder="e.g. My Savings, Business Wallet" required />
+                            <input type="text" name="account_name" id="portfolio_account_name" class="form-control form-control-solid" placeholder="e.g. My Savings, Business Wallet" required />
                         </div>
                         <div class="fv-row mb-7">
                             <label class="fs-6 fw-semibold mb-2">Account Number (Optional)</label>
-                            <input type="text" name="account_number" class="form-control form-control-solid" placeholder="e.g. 123-456-789" />
+                            <input type="text" name="account_number" id="portfolio_account_number" class="form-control form-control-solid" placeholder="e.g. 123-456-789" />
                         </div>
                         <div class="fv-row mb-7">
                             <label class="fs-6 fw-semibold mb-2">Description</label>
-                            <textarea name="description" class="form-control form-control-solid" rows="2"></textarea>
+                            <textarea name="description" id="portfolio_description" class="form-control form-control-solid" rows="2"></textarea>
+                        </div>
+                        <div class="fv-row mb-7">
+                            <div class="form-check form-switch form-check-custom form-check-solid">
+                                <input class="form-check-input" type="checkbox" value="1" name="account_investment" id="account_investment" />
+                                <label class="form-check-label fs-6 fw-semibold" for="account_investment">
+                                    Investment Account (Crypto / Stocks)
+                                </label>
+                            </div>
                         </div>
                         <div class="text-center pt-15">
                             <button type="reset" class="btn btn-light me-3" data-bs-dismiss="modal">Discard</button>
@@ -104,14 +113,39 @@
                 ]
             });
 
+            $('#btn_add_portfolio').click(function() {
+                $('#form_add_portfolio')[0].reset();
+                $('#portfolio_id').val('');
+                $('#portfolio_investment_id').val('').trigger('change');
+                $('#modal_portfolio_title').text('Register My Account');
+                $('#modal_add_portfolio').modal('show');
+            });
+
+            $(document).on('click', '.edit-portfolio-btn', function() {
+                $('#form_add_portfolio')[0].reset();
+                $('#portfolio_id').val($(this).data('id'));
+                $('#portfolio_investment_id').val($(this).data('finance_investment_id')).trigger('change');
+                $('#portfolio_account_name').val($(this).data('account_name'));
+                $('#portfolio_account_number').val($(this).data('account_number'));
+                $('#portfolio_description').val($(this).data('description'));
+                $('#account_investment').prop('checked', $(this).data('account_investment') == 1);
+                $('#modal_portfolio_title').text('Edit My Account');
+                $('#modal_add_portfolio').modal('show');
+            });
+
             $('#form_add_portfolio').submit(function(e) {
                 e.preventDefault();
                 let btn = $(this).find('button[type="submit"]');
                 btn.attr('data-kt-indicator', 'on').prop('disabled', true);
 
+                let id = $('#portfolio_id').val();
+                let url = id ?
+                    "{{ url('money-management/portfolio') }}/" + id :
+                    "{{ route('money-management.portfolio.store') }}";
+
                 $.ajax({
-                    url: "{{ route('money-management.portfolio.store') }}",
-                    method: "POST",
+                    url: url,
+                    method: id ? "PUT" : "POST",
                     data: $(this).serialize(),
                     success: function(res) {
                         Swal.fire({ text: res.success, icon: "success" });

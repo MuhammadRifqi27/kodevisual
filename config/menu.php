@@ -144,14 +144,33 @@ return [
             ]
         ],
         [
-            'label' => 'Bitcoin Tracking',
+            'label' => 'Investment',
             'type' => 'item',
-            'route' => 'money-management.btc-tracking.index',
-            'active' => ['money-management.btc-tracking.index', 'money-management.btc-tracking.show'],
-            'permission' => ['money-management.btc-tracking'],
+            'active' => ['money-management.btc-tracking.index', 'money-management.stock-tracking.index'],
+            'permission' => ['money-management.portfolio'],
             'permissionType' => 'gate',
             'icon' => 'ki',
-            'iconName' => 'bitcoin'
+            'iconName' => 'chart-line-up',
+            'children' => [
+                [
+                    'label' => 'Crypto',
+                    'type' => 'item',
+                    'route' => 'money-management.btc-tracking.index',
+                    'active' => ['money-management.btc-tracking.index'],
+                    'permission' => ['money-management.portfolio'],
+                    'permissionType' => 'gate',
+                    'icon' => 'dot',
+                ],
+                [
+                    'label' => 'Stocks',
+                    'type' => 'item',
+                    'route' => 'money-management.stock-tracking.index',
+                    'active' => ['money-management.stock-tracking.index'],
+                    'permission' => ['money-management.portfolio'],
+                    'permissionType' => 'gate',
+                    'icon' => 'dot',
+                ],
+            ]
         ],
         [
             'label' => 'Monthly Budgets',

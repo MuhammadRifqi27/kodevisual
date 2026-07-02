@@ -117,6 +117,12 @@ Breadcrumbs::for('money-management.btc-tracking', function (BreadcrumbTrail $tra
     $trail->push('Bitcoin Tracking', route('money-management.btc-tracking.index'));
 });
 
+// Money Management > Stock Tracking
+Breadcrumbs::for('money-management.stock-tracking', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Stocks Tracking', route('money-management.stock-tracking.index'));
+});
+
 // Money Management > Master Data > Settings
 Breadcrumbs::for('money-management.master-data.settings', function (BreadcrumbTrail $trail) {
     $trail->parent('money-management.master-data');

@@ -254,7 +254,7 @@
                             <div class="card-header pt-5">
                                 <h3 class="card-title align-items-start flex-column">
                                     <span class="card-label fw-bold text-gray-900 fs-4">DAY {{ $day }}</span>
-                                    <span class="text-muted mt-1 fw-semibold fs-7"><i class="ki-outline ki-calendar fs-7"></i> {{ $items->first()->date }}</span>
+                                    <span class="text-muted mt-1 fw-semibold fs-7"><i class="ki-outline ki-calendar fs-7"></i> {{ Carbon\Carbon::parse($items->first()->date)->locale('id')->translatedFormat('l, d F Y') }}</span>
                                 </h3>
                             </div>
                             <div class="card-body">
@@ -275,7 +275,12 @@
                                                     <td>
                                                         <div class="d-flex flex-column">
                                                             <span class="text-gray-900 fw-bold fs-6">{{ $activity->activity }}</span>
-                                                            <span class="text-muted fw-semibold fs-7"><i class="ki-outline ki-geolocation fs-8"></i> {{ $activity->location }}</span>
+                                                            @if($activity->location)
+                                                                <span class="text-muted fw-semibold fs-7"><i class="ki-outline ki-geolocation fs-8"></i> {{ $activity->location }}</span>
+                                                            @endif
+                                                            @if($activity->description)
+                                                                <span class="text-gray-600 fs-7 mt-1" style="white-space: pre-line; font-style: italic;">{{ $activity->description }}</span>
+                                                            @endif
                                                         </div>
                                                     </td>
                                                     <td>
@@ -296,6 +301,7 @@
                                                                 data-id="{{ $activity->id }}"
                                                                 data-datetime="{{ $activity->date }} {{ $activity->time ? substr($activity->time, 0, 5) : '00:00' }}"
                                                                 data-activity="{{ $activity->activity }}"
+                                                                data-description="{{ $activity->description }}"
                                                                 data-location="{{ $activity->location }}"
                                                                 data-cost-type="{{ $activity->cost_type }}"
                                                                 data-cost-estimate="{{ $activity->cost_estimate }}"
@@ -365,13 +371,16 @@
                                                 <td>
                                                     <div class="d-flex flex-column">
                                                         <span class="text-gray-900 fw-bold fs-6">{{ $activity->activity }}</span>
-                                                        <span class="text-muted fw-semibold fs-7">
+                                                        <span class="text-muted fw-semibold fs-7 mb-1">
                                                             @if($activity->location)
                                                                 <i class="ki-outline ki-geolocation fs-8"></i> {{ $activity->location }}
                                                             @else
                                                                 <span class="text-gray-400">No Location</span>
                                                             @endif
                                                         </span>
+                                                        @if($activity->description)
+                                                            <span class="text-gray-600 fs-7" style="white-space: pre-line; font-style: italic;">{{ $activity->description }}</span>
+                                                        @endif
                                                     </div>
                                                 </td>
                                                 <td class="text-end">
@@ -681,6 +690,7 @@
                 }
 
                 modal.find('#edit_activity').val(btn.data('activity'));
+                modal.find('#edit_description').val(btn.data('description'));
                 modal.find('#edit_location').val(btn.data('location'));
                 modal.find('#edit_cost_type').val(btn.data('cost-type'));
                 modal.find('#edit_cost_estimate').val(btn.data('cost-estimate'));

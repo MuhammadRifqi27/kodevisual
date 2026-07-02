@@ -15,6 +15,7 @@ class TravelItinerary extends Model
         'date',
         'time',
         'activity',
+        'description',
         'location',
         'notes',
         'cost_estimate',

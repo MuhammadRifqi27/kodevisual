@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BtcTrackingController;
+use App\Http\Controllers\StockTrackingController;
 use App\Http\Controllers\DailyPlannerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DetailExpensesController;
@@ -133,6 +134,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::get('/', [TransferController::class, 'index'])->name('index');
                 Route::get('/datatable', [TransferController::class, 'datatable'])->name('datatable');
                 Route::post('/', [TransferController::class, 'store'])->name('store');
+                Route::put('/{id}', [TransferController::class, 'update'])->name('update');
                 Route::get('/receipt/{id}', [TransferController::class, 'showReceipt'])->name('receipt');
                 Route::delete('/{id}', [TransferController::class, 'destroy'])->name('destroy');
             });
@@ -151,6 +153,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::get('/', [PortfolioController::class, 'index'])->name('index');
                 Route::get('/datatable', [PortfolioController::class, 'datatable'])->name('datatable');
                 Route::post('/store', [PortfolioController::class, 'store'])->name('store');
+                Route::put('/{id}', [PortfolioController::class, 'update'])->name('update');
                 Route::delete('/{id}', [PortfolioController::class, 'destroy'])->name('destroy');
                 Route::get('/{id}', [PortfolioController::class, 'show'])->name('show');
 
@@ -167,6 +170,14 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::get('/datatable', [BtcTrackingController::class, 'datatable'])->name('datatable');
                 Route::post('/store', [BtcTrackingController::class, 'store'])->name('store');
                 Route::delete('/{id}', [BtcTrackingController::class, 'destroy'])->name('destroy');
+            });
+
+            // Stock Tracking
+            Route::group(['prefix' => 'stock-tracking', 'as' => 'stock-tracking.'], function () {
+                Route::get('/', [StockTrackingController::class, 'index'])->name('index');
+                Route::get('/datatable', [StockTrackingController::class, 'datatable'])->name('datatable');
+                Route::post('/store', [StockTrackingController::class, 'store'])->name('store');
+                Route::delete('/{id}', [StockTrackingController::class, 'destroy'])->name('destroy');
             });
 
             // Wedding

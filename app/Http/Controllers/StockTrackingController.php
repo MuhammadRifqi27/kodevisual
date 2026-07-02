@@ -9,21 +9,21 @@ use App\Models\FinanceTransaction;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
-class BtcTrackingController extends Controller
+class StockTrackingController extends Controller
 {
     public function index()
     {
-        // Get all portfolios related to Crypto
-        $btcPortfolios = FinancePortfolio::where('user_id', auth()->id())
+        // Get all portfolios related to Stocks
+        $stockPortfolios = FinancePortfolio::where('user_id', auth()->id())
             ->whereHas('investment', function($q) {
-                $q->where('type', 'crypto');
+                $q->where('type', 'stock');
             })
             ->get();
 
-        $totalBtcValue = $btcPortfolios->sum('balance');
-        $portfolioIds = $btcPortfolios->pluck('id');
+        $totalStockValue = $stockPortfolios->sum('balance');
+        $portfolioIds = $stockPortfolios->pluck('id');
 
-        // Per-asset balance breakdown from investment transactions (deposit+profit - withdrawal-loss)...
+        // Per-emiten balance breakdown from investment transactions (deposit+profit - withdrawal-loss)...
         $balances = FinanceInvestmentTransaction::where('user_id', auth()->id())
             ->whereIn('finance_investment_id', $portfolioIds)
             ->get()
@@ -51,26 +51,59 @@ class BtcTrackingController extends Controller
             $balances[$asset] = ($balances[$asset] ?? 0) + $amount;
         }
 
-        $assetBalances = $balances->map(function($balance, $asset) {
-            return ['asset' => $asset, 'balance' => $balance];
-        })->values();
+        // Per-emiten lot breakdown, same merge approach as the Rupiah balance above
+        $lots = FinanceInvestmentTransaction::where('user_id', auth()->id())
+            ->whereIn('finance_investment_id', $portfolioIds)
+            ->whereNotNull('lot')
+            ->get()
+            ->groupBy(function($item) {
+                return $item->asset ?: 'Unspecified';
+            })
+            ->map(function($rows) {
+                return $rows->sum(function($row) {
+                    return in_array($row->type, ['deposit', 'profit']) ? $row->lot : -$row->lot;
+                });
+            });
 
-        return view('pages.money-management.btc-tracking.index', compact('btcPortfolios', 'totalBtcValue', 'assetBalances'));
+        $transferLots = FinanceTransaction::where('user_id', auth()->id())
+            ->where('type', 'transfer')
+            ->whereIn('finance_investment_id', $portfolioIds)
+            ->whereNotNull('lot')
+            ->get()
+            ->groupBy('asset')
+            ->map(function($rows) {
+                return $rows->sum('lot');
+            });
+
+        foreach ($transferLots as $asset => $lot) {
+            $lots[$asset] = ($lots[$asset] ?? 0) + $lot;
+        }
+
+        $emitenBalances = $balances->keys()->merge($lots->keys())->unique()
+            ->map(function($asset) use ($balances, $lots) {
+                return [
+                    'asset' => $asset,
+                    'balance' => $balances[$asset] ?? 0,
+                    'lot' => $lots[$asset] ?? null,
+                ];
+            })->values();
+
+        return view('pages.money-management.stock-tracking.index', compact('stockPortfolios', 'totalStockValue', 'emitenBalances'));
     }
 
     public function datatable()
     {
         $userId = auth()->id();
 
-        // Get Crypto portfolio IDs
-        $btcPortfolioIds = FinancePortfolio::where('user_id', $userId)
+        // Get Stock portfolio IDs
+        $stockPortfolioIds = FinancePortfolio::where('user_id', $userId)
             ->whereHas('investment', function($q) {
-                $q->where('type', 'crypto');
+                $q->where('type', 'stock');
             })
             ->pluck('id');
 
         $invTrx = FinanceInvestmentTransaction::where('user_id', $userId)
-            ->whereIn('finance_investment_id', $btcPortfolioIds)
+            ->whereIn('finance_investment_id', $stockPortfolioIds)
             ->with('portfolio')
             ->get()
             ->map(function($item) {
@@ -80,7 +113,7 @@ class BtcTrackingController extends Controller
 
         $transferTrx = FinanceTransaction::where('user_id', $userId)
             ->where('type', 'transfer')
-            ->whereIn('finance_investment_id', $btcPortfolioIds)
+            ->whereIn('finance_investment_id', $stockPortfolioIds)
             ->whereNotNull('asset')
             ->with('portfolio')
             ->get()
@@ -101,6 +134,16 @@ class BtcTrackingController extends Controller
             })
             ->editColumn('asset', function($row) {
                 return $row->asset ? '<span class="badge badge-light-info">'.$row->asset.'</span>' : '<span class="text-muted">-</span>';
+            })
+            ->editColumn('lot', function($row) {
+                if ($row->lot === null) {
+                    return '<span class="text-muted">-</span>';
+                }
+                if ($row->source_type === 'transfer') {
+                    return ($row->lot < 0 ? '- ' : '+ ') . abs($row->lot) . ' Lot';
+                }
+                $isIn = in_array($row->type, ['deposit', 'profit']);
+                return ($isIn ? '+ ' : '- ') . $row->lot . ' Lot';
             })
             ->editColumn('type', function($row) {
                 if ($row->source_type === 'transfer') {
@@ -126,9 +169,9 @@ class BtcTrackingController extends Controller
                 if ($row->source_type === 'transfer') {
                     return '<span class="text-muted fs-7">Manage in Transfers</span>';
                 }
-                return '<button data-id="'.$row->id.'" class="btn btn-icon btn-active-light-danger w-30px h-30px delete-btc-trx-btn" title="Remove from Tracking"><i class="ki-duotone ki-trash fs-3"><span class="path1"></span><span class="path2"></span><span class="path3"></span><span class="path4"></span><span class="path5"></span></i></button>';
+                return '<button data-id="'.$row->id.'" class="btn btn-icon btn-active-light-danger w-30px h-30px delete-stock-trx-btn" title="Remove from Tracking"><i class="ki-duotone ki-trash fs-3"><span class="path1"></span><span class="path2"></span><span class="path3"></span><span class="path4"></span><span class="path5"></span></i></button>';
             })
-            ->rawColumns(['asset', 'type', 'amount', 'action'])
+            ->rawColumns(['asset', 'lot', 'type', 'amount', 'action'])
             ->make(true);
     }
 
