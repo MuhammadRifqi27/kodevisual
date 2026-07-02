@@ -119,7 +119,7 @@
                     {data: 'description', name: 'description'},
                     {data: 'action', name: 'action', orderable: false, searchable: false, className: "text-end"},
                 ],
-                order: [[1, 'desc']]
+                order: [[1, 'asc']]
             });
 
             $('#stock_search').keyup(function(){
