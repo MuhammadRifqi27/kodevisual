@@ -170,6 +170,15 @@ return [
                     'permissionType' => 'gate',
                     'icon' => 'dot',
                 ],
+                [
+                    'label' => 'IPO',
+                    'type' => 'item',
+                    'route' => 'money-management.ipo.index',
+                    'active' => ['money-management.ipo.index'],
+                    'permission' => ['money-management.portfolio'],
+                    'permissionType' => 'gate',
+                    'icon' => 'dot',
+                ],
             ]
         ],
         [

@@ -10,6 +10,7 @@ use App\Http\Controllers\DetailExpensesController;
 use App\Http\Controllers\DetailExpensesRifqiController;
 use App\Http\Controllers\MasterCategoryController;
 use App\Http\Controllers\MoneyManagement\BudgetController;
+use App\Http\Controllers\MoneyManagement\IpoController;
 use App\Http\Controllers\MoneyManagement\MasterDataController;
 use App\Http\Controllers\MoneyManagement\MoneyManagementDashboardController;
 use App\Http\Controllers\MoneyManagement\PortfolioController;
@@ -177,7 +178,20 @@ Route::middleware(['auth', 'approved'])->group(function () {
                 Route::get('/', [StockTrackingController::class, 'index'])->name('index');
                 Route::get('/datatable', [StockTrackingController::class, 'datatable'])->name('datatable');
                 Route::post('/store', [StockTrackingController::class, 'store'])->name('store');
+                Route::post('/price', [StockTrackingController::class, 'updatePrice'])->name('price');
+                Route::post('/trade', [StockTrackingController::class, 'storeTrade'])->name('trade.store');
+                Route::delete('/trade/{id}', [StockTrackingController::class, 'destroyTrade'])->name('trade.destroy');
                 Route::delete('/{id}', [StockTrackingController::class, 'destroy'])->name('destroy');
+            });
+
+            // IPO Orders
+            Route::prefix('ipo')->name('ipo.')->group(function () {
+                Route::get('/', [IpoController::class, 'index'])->name('index');
+                Route::get('/datatable', [IpoController::class, 'datatable'])->name('datatable');
+                Route::post('/', [IpoController::class, 'store'])->name('store');
+                Route::put('/{id}', [IpoController::class, 'update'])->name('update');
+                Route::post('/{id}/allotment', [IpoController::class, 'confirmAllotment'])->name('allotment');
+                Route::delete('/{id}', [IpoController::class, 'destroy'])->name('destroy');
             });
 
             // Wedding

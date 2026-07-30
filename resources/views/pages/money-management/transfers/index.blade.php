@@ -82,19 +82,37 @@
                             </div>
                         </div>
 
+                        <div class="fv-row mb-7 d-none" id="row_transfer_purpose">
+                            <label class="fs-6 fw-semibold mb-2">Transaction Purpose</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="transfer_purpose" id="transfer_purpose_deposit" value="deposit" checked>
+                                <label class="btn btn-outline btn-outline-primary btn-active-light-primary w-50" for="transfer_purpose_deposit">Deposit (Top Up Saldo)</label>
+
+                                <input type="radio" class="btn-check" name="transfer_purpose" id="transfer_purpose_buy" value="buy_emiten">
+                                <label class="btn btn-outline btn-outline-primary btn-active-light-primary w-50" for="transfer_purpose_buy">Buy Emiten</label>
+                            </div>
+                        </div>
+
                         <div class="fv-row mb-7 d-none" id="row_transfer_asset">
                             <label class="fs-6 fw-semibold mb-2" id="label_transfer_asset">Asset</label>
                             <input type="text" class="form-control form-control-solid" name="asset" id="transfer_asset" placeholder="e.g. BITCOIN, BBCA" />
                         </div>
 
-                        <div class="fv-row mb-7 d-none" id="row_transfer_lot">
-                            <label class="fs-6 fw-semibold mb-2">Lot</label>
-                            <input type="number" min="0" step="1" class="form-control form-control-solid" name="lot" id="transfer_lot" placeholder="e.g. 5" />
+                        <div class="row g-9 mb-7 d-none" id="row_transfer_lot">
+                            <div class="col-md-6 fv-row">
+                                <label class="fs-6 fw-semibold mb-2">Lot</label>
+                                <input type="number" min="0" step="1" class="form-control form-control-solid" name="lot" id="transfer_lot" placeholder="e.g. 5" />
+                            </div>
+                            <div class="col-md-6 fv-row">
+                                <label class="fs-6 fw-semibold mb-2">Price / Share</label>
+                                <input type="number" min="0" step="0.01" class="form-control form-control-solid" id="transfer_price_per_share" placeholder="e.g. 1000" />
+                            </div>
                         </div>
 
                         <div class="fv-row mb-7">
                             <label class="required fs-6 fw-semibold mb-2">Amount (Rp)</label>
-                            <input type="number" step="0.01" class="form-control form-control-solid" name="amount" placeholder="e.g. 1000000" required />
+                            <input type="number" step="0.01" name="amount" id="transfer_amount" class="form-control form-control-solid" placeholder="e.g. 1000000" required />
+                            <div class="form-text" id="transfer_amount_hint"></div>
                         </div>
 
                         <div class="fv-row mb-7">
@@ -188,9 +206,37 @@
                 table.search($(this).val()).draw();
             });
 
+            function recalculateStockAmount() {
+                let type = $('select[name=to_account_id]').find(':selected').data('type');
+                let purpose = $('input[name=transfer_purpose]:checked').val();
+                if (type !== 'stock' || purpose !== 'buy_emiten') {
+                    return;
+                }
+                let lot = parseFloat($('#transfer_lot').val()) || 0;
+                let price = parseFloat($('#transfer_price_per_share').val()) || 0;
+                if (lot > 0 && price > 0) {
+                    let amount = lot * 100 * price;
+                    $('#transfer_amount').val(amount);
+                    $('#transfer_amount_hint').text('Auto: ' + lot + ' lot x 100 x Rp ' + price.toLocaleString('id-ID') + ' = Rp ' + amount.toLocaleString('id-ID'));
+                } else {
+                    $('#transfer_amount_hint').text('');
+                }
+            }
+
             function updateAssetFieldVisibility() {
                 let type = $('select[name=to_account_id]').find(':selected').data('type');
-                if (type === 'crypto' || type === 'stock') {
+
+                if (type === 'stock') {
+                    $('#row_transfer_purpose').removeClass('d-none');
+                } else {
+                    $('#row_transfer_purpose').addClass('d-none');
+                    $('#transfer_purpose_deposit').prop('checked', true);
+                }
+
+                let purpose = $('input[name=transfer_purpose]:checked').val();
+                let showEmitenFields = type === 'stock' && purpose === 'buy_emiten';
+
+                if (showEmitenFields || type === 'crypto') {
                     $('#row_transfer_asset').removeClass('d-none');
                     $('#label_transfer_asset').text(type === 'stock' ? 'Emiten' : 'Asset');
                 } else {
@@ -198,15 +244,21 @@
                     $('#transfer_asset').val('');
                 }
 
-                if (type === 'stock') {
+                if (showEmitenFields) {
                     $('#row_transfer_lot').removeClass('d-none');
+                    $('#transfer_amount').prop('readonly', true);
                 } else {
                     $('#row_transfer_lot').addClass('d-none');
                     $('#transfer_lot').val('');
+                    $('#transfer_price_per_share').val('');
+                    $('#transfer_amount_hint').text('');
+                    $('#transfer_amount').prop('readonly', false);
                 }
             }
 
             $('select[name=to_account_id]').on('change', updateAssetFieldVisibility);
+            $(document).on('change', 'input[name=transfer_purpose]', updateAssetFieldVisibility);
+            $('#transfer_lot, #transfer_price_per_share').on('input', recalculateStockAmount);
 
             $('#btn_add_transfer').click(function() {
                 $('#form_transfer')[0].reset();
@@ -221,11 +273,25 @@
                 $('#form_transfer')[0].reset();
                 $('#transfer_id').val($(this).data('id'));
                 $('#form_transfer input[name=date]').val($(this).data('date'));
+
+                let amount = $(this).data('amount');
+                let lot = $(this).data('lot');
+
+                // A stored lot means this was originally a "Buy Emiten" transfer, not a plain deposit
+                $('input[name=transfer_purpose][value=' + (lot ? 'buy_emiten' : 'deposit') + ']').prop('checked', true);
+
                 $('select[name=from_account_id]').val($(this).data('finance_investment_id')).trigger('change');
                 $('select[name=to_account_id]').val($(this).data('to_finance_investment_id')).trigger('change');
-                $('#form_transfer input[name=amount]').val($(this).data('amount'));
+
+                $('#transfer_amount').val(amount);
                 $('#transfer_asset').val($(this).data('asset'));
-                $('#transfer_lot').val($(this).data('lot'));
+                $('#transfer_lot').val(lot);
+
+                // Derive price/share from the stored amount+lot so the calculator stays consistent
+                if (lot > 0 && amount > 0) {
+                    $('#transfer_price_per_share').val((amount / (lot * 100)).toFixed(2));
+                }
+
                 $('#form_transfer textarea[name=description]').val($(this).data('description'));
                 $('#modal_transfer_title').text('Edit Internal Transfer');
                 $('#btn_submit_transfer .indicator-label').text('Save Changes');

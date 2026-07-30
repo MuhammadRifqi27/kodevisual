@@ -123,6 +123,12 @@ Breadcrumbs::for('money-management.stock-tracking', function (BreadcrumbTrail $t
     $trail->push('Stocks Tracking', route('money-management.stock-tracking.index'));
 });
 
+// Money Management > IPO Orders
+Breadcrumbs::for('money-management.ipo', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('IPO Orders', route('money-management.ipo.index'));
+});
+
 // Money Management > Master Data > Settings
 Breadcrumbs::for('money-management.master-data.settings', function (BreadcrumbTrail $trail) {
     $trail->parent('money-management.master-data');
