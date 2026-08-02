@@ -1,0 +1,374 @@
+PANDUAN DEVELOPMENT APLIKASI MOBILE FLUTTER - MONEY MANAGEMENT
+=================================================================
+Dokumen ini adalah panduan teknis untuk membangun aplikasi mobile Flutter
+yang terkoneksi ke backend Laravel (kode_visual) via REST API, khusus untuk
+modul Money Management. API-nya sudah disiapkan di backend (lihat BAGIAN 2),
+sifatnya ONLINE-ONLY (mobile app butuh koneksi internet, tidak ada mode
+offline di versi ini).
+
+Baca juga docs/money-management-alur-bisnis-database.txt untuk memahami
+alur bisnis & struktur database sebelum mendesain layar-layar mobile.
+
+
+BAGIAN 0 - RINGKASAN ARSITEKTUR
+-----------------------------------
+  [Flutter App]  <--- HTTPS/JSON --->  [Laravel API: routes/api.php]
+                                              |
+                                        Sanctum Token Auth
+                                              |
+                                     Database MySQL (sama persis
+                                     dengan yang dipakai web admin)
+
+- Autentikasi: Laravel Sanctum Personal Access Token (bukan session/cookie).
+  Login sekali -> dapat token string -> simpan di HP -> kirim di header
+  "Authorization: Bearer {token}" di setiap request berikutnya.
+- Tidak ada sinkronisasi offline. Setiap aksi (tambah transaksi, transfer,
+  dsb) langsung tembak ke server dan langsung tersimpan ke database yang
+  sama dengan yang dipakai aplikasi web admin. Kalau HP tidak ada internet,
+  aplikasi tidak bisa dipakai untuk input data.
+- User mobile = user yang sama dengan user web (tabel `users`). Login pakai
+  email + password yang sama. Menu yang boleh diakses tergantung permission
+  role user tersebut di app "money-management" (lihat BAGIAN 3).
+
+
+BAGIAN 1 - PERSIAPAN & SETUP PROJECT FLUTTER
+-------------------------------------------------
+1. Install Flutter SDK (flutter.dev) - gunakan channel stable.
+2. Cek instalasi: `flutter doctor` (pastikan semua checklist hijau, minimal
+   untuk Android; iOS butuh Mac + Xcode kalau mau build ke iOS).
+3. Buat project baru:
+     flutter create money_management_mobile
+4. Package yang direkomendasikan (tambahkan di pubspec.yaml):
+   - dio                    -> HTTP client (lebih enak dari http bawaan,
+                                 support interceptor untuk auto-attach token)
+   - flutter_secure_storage -> simpan token Sanctum dengan aman (Keychain
+                                 di iOS, Keystore di Android)
+   - provider ATAU riverpod -> state management (pilih salah satu, jangan
+                                 dua-duanya)
+   - intl                   -> format tanggal & mata uang Rupiah
+   - fl_chart                -> untuk grafik di halaman Summary (opsional)
+   - go_router (opsional)   -> routing/navigasi yang lebih terstruktur
+
+5. Struktur folder yang disarankan:
+     lib/
+       core/
+         api_client.dart        (setup Dio + interceptor token)
+         api_endpoints.dart     (konstanta semua path endpoint)
+       data/
+         models/                (model Dart per entity: Transaction, Portfolio, dst)
+         repositories/          (kelas yang manggil API per fitur)
+       features/
+         auth/
+         dashboard/
+         transactions/
+         transfers/
+         budgets/
+         portfolio/
+         recurring/
+         summary/
+         ipo/
+         stock_tracking/
+         btc_tracking/
+         master_data/           (kategori, provider investasi, settings)
+       main.dart
+
+6. Selama development, jalankan backend Laravel-nya secara lokal:
+     php artisan serve --host=0.0.0.0 --port=8000
+   - Kalau test di EMULATOR Android: base URL = http://10.0.2.2:8000/api/v1
+     (10.0.2.2 adalah alias emulator Android untuk "localhost" komputer kamu)
+   - Kalau test di HP FISIK (sambil satu WiFi dengan laptop): base URL pakai
+     IP lokal laptop, misal http://192.168.1.10:8000/api/v1
+   - Kalau mau lebih gampang tanpa ribet jaringan: pakai ngrok
+     (`ngrok http 8000`) lalu pakai URL https yang diberikan ngrok.
+   - Setelah hosting production sudah jalan (lihat docs/webnesia-deployment-steps.txt),
+     ganti base URL ke domain aslinya, contoh: https://namadomainkamu.com/api/v1
+
+
+BAGIAN 2 - APA YANG SUDAH DISIAPKAN DI BACKEND
+---------------------------------------------------
+- routes/api.php sudah berisi seluruh endpoint Money Management (daftar
+  lengkap di BAGIAN 4).
+- Auth pakai Laravel Sanctum (package sudah terpasang sebelumnya, sekarang
+  endpoint login/logout/me sudah aktif).
+- Middleware `api.approved`: kalau akun user belum di-approve admin, semua
+  request API akan ditolak (403) dan tokennya langsung dicabut.
+- Middleware `can:money-management.xxx`: setiap grup endpoint dilindungi
+  permission yang sama dengan yang dipakai di aplikasi web (lihat BAGIAN 3).
+- Response error sudah dipastikan selalu JSON (bukan redirect HTML) untuk
+  semua request yang path-nya diawali `/api/` - jadi Flutter tidak akan
+  pernah menerima halaman HTML nyasar.
+- Belum ada endpoint registrasi akun baru dari mobile. Untuk sekarang, akun
+  baru tetap dibuat/di-approve lewat aplikasi web oleh admin. Kalau mau
+  tambahkan registrasi dari mobile nanti, tinggal buat endpoint baru yang
+  reuse `AuthController::register` punya web (dengan is_approved = false
+  by default, tetap butuh approval admin).
+
+
+BAGIAN 3 - AUTENTIKASI & PERMISSION
+----------------------------------------
+1. LOGIN
+   POST /api/v1/auth/login
+   Body: { "email": "...", "password": "...", "device_name": "iPhone Budi" }
+   - "device_name" bebas diisi apa saja, dipakai Sanctum untuk menandai token
+     ini datang dari device mana (berguna kalau nanti mau fitur "logout semua
+     device lain").
+   Response sukses (200):
+     {
+       "token": "1|abcdef...",
+       "user": {
+         "id": 1, "name": "...", "email": "...", "avatar_url": "...",
+         "money_management_permissions": ["dashboard","transactions", ...]
+       }
+     }
+   Response gagal (422): { "message": "...", "errors": { "email": ["..."] } }
+   - Simpan "token" ke flutter_secure_storage.
+   - Simpan juga array "money_management_permissions" (dari user yang
+     login) untuk dipakai menentukan menu apa saja yang ditampilkan di app.
+
+2. SETIAP REQUEST SETELAHNYA
+   Kirim header:
+     Authorization: Bearer {token}
+     Accept: application/json
+   (Header "Accept: application/json" WAJIB dikirim supaya response error
+   selalu dalam bentuk JSON, bukan HTML.)
+
+3. LOGOUT
+   POST /api/v1/auth/logout  (butuh token)
+   -> mencabut token yang sedang dipakai. Hapus juga token dari secure
+      storage di sisi Flutter setelah call ini sukses.
+
+4. CEK PROFIL / REFRESH PERMISSION
+   GET /api/v1/auth/me  (butuh token)
+   -> berguna dipanggil saat app dibuka lagi setelah lama, untuk memastikan
+      token masih valid dan permission masih up to date (misalnya admin
+      baru saja mengubah role user tersebut).
+
+5. PERMISSION YANG ADA SAAT INI (per Agustus 2026, lihat tabel app_permissions)
+   dashboard, transactions, budgets, summary, portfolio, settings,
+   internal-transfers, recurring, btc-tracking
+   - Role "Administrator" di app money-management: semua permission di atas.
+   - Role "Regular User" (default untuk user baru): hanya dashboard,
+     transactions, summary.
+   PENTING: dengan pengaturan default saat ini, seorang "Regular User" TIDAK
+   bisa membuat portfolio/akun sendiri, tidak bisa atur budget, tidak bisa
+   transfer, dan tidak bisa atur kategori/provider investasi/pengaturan
+   sendiri lewat mobile - karena permission itu di luar 3 permission
+   default-nya. Kalau mobile app ini rencananya dipakai juga oleh user
+   biasa (bukan cuma admin) untuk kelola keuangan pribadi mereka sendiri,
+   role "Regular User" di database perlu ditambah permission portfolio &
+   settings (dan idealnya internal-transfers, recurring, budgets juga) -
+   ini perlu diputuskan & diubah manual di halaman admin (Manage Roles &
+   Permissions), belum otomatis di seeder.
+   Endpoint IPO & Stock Tracking (fitur trading saham) saat ini masih
+   digabung ke bawah permission "portfolio" karena web app belum punya kode
+   permission terpisah untuk itu - pertimbangkan ini saat desain menu.
+
+6. DESAIN MENU DI APP
+   Setelah login, cek array `money_management_permissions` untuk
+   menentukan menu apa yang ditampilkan:
+     dashboard              -> tampilkan Dashboard
+     transactions           -> tampilkan Transaksi (income/expense)
+     internal-transfers     -> tampilkan Transfer
+     recurring              -> tampilkan Transaksi Berulang
+     budgets                -> tampilkan Budget
+     summary                -> tampilkan Ringkasan/Laporan
+     portfolio              -> tampilkan Portfolio/Akun, IPO, Stock Tracking
+     btc-tracking            -> tampilkan Crypto/BTC Tracking
+     settings                -> tampilkan Master Data (kategori, provider
+                                 investasi) & Pengaturan
+
+
+BAGIAN 4 - DAFTAR ENDPOINT API
+-----------------------------------
+Base URL contoh: http://10.0.2.2:8000/api/v1 (lihat BAGIAN 1 poin 6)
+Semua endpoint di bawah `/money-management/*` butuh header Authorization.
+
+AUTH
+  POST   /auth/login                                  (publik)
+  POST   /auth/logout
+  GET    /auth/me
+
+DASHBOARD
+  GET    /money-management/dashboard?month=&year=
+
+TRANSAKSI (income/expense)
+  GET    /money-management/transactions?type=&category_id=&start_date=&end_date=&page=
+  POST   /money-management/transactions
+  PUT    /money-management/transactions/{id}
+  DELETE /money-management/transactions/{id}
+  Body store/update: { date, type(income|expense), category_id, investment_id?, amount, description? }
+
+TRANSFER ANTAR AKUN
+  GET    /money-management/transfers?page=
+  POST   /money-management/transfers
+  PUT    /money-management/transfers/{id}
+  DELETE /money-management/transfers/{id}
+  Body: { date, from_account_id, to_account_id, amount, description?, asset?, lot? }
+  Catatan: {id} yang dipakai untuk update/delete adalah id sisi "outbound"
+  (baris yang tampil di daftar GET /transfers), backend otomatis mengurus
+  pasangannya (sisi "inbound") di akun tujuan.
+
+TRANSAKSI BERULANG (recurring)
+  GET    /money-management/recurring         (otomatis memproses transaksi
+                                                yang sudah jatuh tempo dulu
+                                                sebelum mengembalikan list)
+  POST   /money-management/recurring
+  DELETE /money-management/recurring/{id}
+  POST   /money-management/recurring/process  (trigger manual, misal lewat
+                                                 pull-to-refresh di Dashboard)
+  Body store: { name, type(income|expense), finance_category_id, finance_investment_id, amount, frequency(daily|weekly|monthly|yearly), start_date, description? }
+
+BUDGET
+  GET    /money-management/budgets?month=&year=
+  POST   /money-management/budgets
+  Body: { finance_category_id, amount, month, year }
+
+RINGKASAN / SUMMARY
+  GET    /money-management/summary?month=&year=
+  POST   /money-management/summary/net-worth-snapshot   (ambil snapshot net worth hari ini)
+
+PORTFOLIO (akun/wallet)
+  GET    /money-management/portfolios
+  POST   /money-management/portfolios
+  GET    /money-management/portfolios/{id}
+  PUT    /money-management/portfolios/{id}
+  DELETE /money-management/portfolios/{id}               (gagal 400 kalau akun sudah punya riwayat transaksi)
+  Body store/update: { finance_investment_id, account_name, account_number?, description?, account_investment? }
+
+  GET    /money-management/portfolios/{id}/transactions          (riwayat gabungan: ledger investasi + transaksi umum)
+  POST   /money-management/portfolios/{id}/transactions
+  PUT    /money-management/portfolios/{id}/transactions/{trxId}
+  DELETE /money-management/portfolios/{id}/transactions/{trxId}
+  Body store/update: { asset?, lot?, date, type(deposit|withdrawal|profit|loss), amount, description? }
+
+IPO (khusus akun dengan provider bertipe "stock")
+  GET    /money-management/ipo
+  POST   /money-management/ipo
+  PUT    /money-management/ipo/{id}                       (hanya bisa selama status masih "pending")
+  POST   /money-management/ipo/{id}/confirm-allotment
+  DELETE /money-management/ipo/{id}
+  Body store/update: { finance_investment_id, asset, order_date, price_per_share, lot_ordered, description? }
+  Body confirm-allotment: { lot_allotted, allotment_date }
+
+STOCK TRACKING (trading saham pasar sekunder)
+  GET    /money-management/stock-tracking
+  POST   /money-management/stock-tracking/price           Body: { asset, current_price }
+  POST   /money-management/stock-tracking/trade            Body: { finance_investment_id, asset, type(buy|sell), trade_date, price_per_share, lot, description? }
+  DELETE /money-management/stock-tracking/trade/{id}
+  DELETE /money-management/stock-tracking/{id}             (hapus 1 baris ledger dari tracking, bukan trade)
+
+BTC TRACKING (crypto, versi sederhana - tanpa fitur buy/sell)
+  GET    /money-management/btc-tracking
+  DELETE /money-management/btc-tracking/{id}
+
+MASTER DATA
+  GET    /money-management/categories?type=income|expense
+  POST   /money-management/categories                      Body: { name, type(income|expense), description? }
+  PUT    /money-management/categories/{id}
+  DELETE /money-management/categories/{id}
+
+  GET    /money-management/investments                      (daftar provider: bank/exchange/broker)
+  POST   /money-management/investments                      Body: { name, code?, type(crypto|stock|other), description? }
+  PUT    /money-management/investments/{id}
+  DELETE /money-management/investments/{id}
+
+  GET    /money-management/settings                          (object key-value, misal payroll_start_day)
+  POST   /money-management/settings                          Body: object key-value bebas, contoh { "payroll_start_day": 25 }
+
+
+BAGIAN 5 - FORMAT RESPONSE & PENANGANAN ERROR
+--------------------------------------------------
+- Semua nominal uang dikirim sebagai angka (number), BUKAN string berformat
+  "Rp 1.000.000". Lakukan formatting ke Rupiah di sisi Flutter (pakai
+  package `intl`, class NumberFormat.currency).
+- Kode status HTTP yang perlu ditangani:
+    200 / 201  -> sukses (201 untuk endpoint yang membuat data baru)
+    400        -> gagal karena aturan bisnis (contoh: saldo trading tidak
+                  cukup, lot melebihi yang dimiliki, akun masih punya
+                  riwayat transaksi) - pesannya ada di field "error"
+    401        -> token tidak valid/kadaluarsa -> paksa logout, arahkan ke
+                  layar login lagi
+    403        -> tidak punya permission untuk fitur itu, ATAU akun belum
+                  di-approve admin -> tampilkan pesan dari field "message"
+    422        -> validasi input gagal -> field "errors" berisi pesan per
+                  field, tampilkan di form yang relevan
+    404        -> data tidak ditemukan / bukan milik user yang login
+- Semua data tanggal dikirim/diterima dalam format "YYYY-MM-DD".
+- Contoh interceptor Dio sederhana untuk auto-attach token & auto-logout
+  saat 401:
+
+    class ApiClient {
+      final Dio dio = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:8000/api/v1'));
+      final _storage = const FlutterSecureStorage();
+
+      ApiClient() {
+        dio.interceptors.add(InterceptorsWrapper(
+          onRequest: (options, handler) async {
+            final token = await _storage.read(key: 'auth_token');
+            if (token != null) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+            options.headers['Accept'] = 'application/json';
+            handler.next(options);
+          },
+          onError: (error, handler) async {
+            if (error.response?.statusCode == 401) {
+              await _storage.delete(key: 'auth_token');
+              // TODO: navigasi paksa ke halaman login
+            }
+            handler.next(error);
+          },
+        ));
+      }
+    }
+
+
+BAGIAN 6 - CATATAN KHUSUS PER FITUR (perlu diperhatikan saat desain UI)
+----------------------------------------------------------------------------
+- SALDO SELALU DIHITUNG, TIDAK PERNAH DISIMPAN LANGSUNG. Field "balance" di
+  response Portfolio adalah hasil hitung real-time di server. Jangan
+  cache/hitung ulang saldo secara manual di Flutter - selalu ambil dari API.
+- TRANSFER = 2 baris data di server (dari & ke), tapi di UI cukup
+  ditampilkan sebagai 1 kartu "Transfer dari A ke B". List GET /transfers
+  sudah otomatis hanya menampilkan 1 baris per transfer.
+- RECURRING otomatis diproses (dibuatkan transaksi asli) setiap kali
+  endpoint GET /recurring dipanggil - jadi panggil endpoint ini setiap kali
+  halaman terkait dibuka atau saat pull-to-refresh Dashboard, supaya
+  transaksi berulang yang jatuh tempo langsung muncul.
+- BUDGET & DASHBOARD & SUMMARY memakai "siklus gajian" (payroll cycle),
+  bukan tanggal 1-31 kalender biasa. Siklus ini diatur lewat
+  POST /money-management/settings dengan key "payroll_start_day" (angka
+  1-31, atau string "last" untuk akhir bulan). Response dashboard/budget/
+  summary sudah menyertakan "cycle_start_date"/"cycle_end_date" supaya UI
+  bisa menampilkan periode yang sedang dilihat.
+- IPO: field "status" pada tiap order dihitung otomatis oleh server
+  (pending / rejected / partial / full) - tampilkan badge warna berbeda
+  per status. Order yang statusnya sudah bukan "pending" tidak bisa diedit
+  lagi lewat PUT (hapus lalu buat ulang kalau perlu koreksi).
+- STOCK TRADING: sebelum kirim POST /stock-tracking/trade dengan
+  type=sell, sebaiknya validasi dulu di sisi UI bahwa lot yang dijual tidak
+  melebihi lot yang dimiliki (data lot per-emiten ada di response
+  GET /stock-tracking), supaya user dapat feedback cepat sebelum request
+  dikirim (server tetap akan menolak juga kalau lolos validasi UI).
+- WEDDING PLANNER & TRAVEL PLANNER bukan bagian dari Money Management -
+  jangan bingung meskipun secara URL di web app menu Wedding Planner
+  nyempil di bawah prefix /money-management/ (lihat catatan di
+  docs/money-management-alur-bisnis-database.txt Bagian 2).
+
+
+BAGIAN 7 - ROADMAP / DI LUAR SCOPE VERSI INI
+-------------------------------------------------
+- Mode OFFLINE (kerja tanpa internet lalu sync belakangan) belum
+  diimplementasikan. Kalau nanti dibutuhkan, rujuk rencana teknisnya di
+  docs/mobile-offline-sync-plan.md (butuh migration tambahan: uuid, soft
+  delete, kolom sync - skema saat ini belum mendukung).
+- Registrasi akun baru & lupa password dari mobile belum ada endpoint-nya
+  (masih manual lewat web/admin).
+- Push notification (misal reminder recurring transaction jatuh tempo,
+  atau reminder input transaksi harian) belum ada di scope ini - bisa jadi
+  pengembangan lanjutan (Firebase Cloud Messaging).
+- Upload struk/foto bukti transaksi belum ada endpoint-nya.
+- Rate limit default Laravel untuk group "api" adalah 60 request/menit per
+  user (lihat app/Providers/RouteServiceProvider.php) - cukup longgar untuk
+  pemakaian normal, tapi perlu diperhatikan kalau nanti ada fitur
+  auto-refresh/polling yang agresif di mobile.

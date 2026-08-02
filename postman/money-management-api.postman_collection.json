@@ -1,0 +1,836 @@
+{
+  "info": {
+    "_postman_id": "b6f2a6b0-0a1a-4a2b-9b1a-money-mgmt-api",
+    "name": "Money Management API - kode_visual",
+    "description": "Koleksi endpoint API Money Management (Laravel Sanctum). Jalankan request 'Login' dulu di folder Auth, token akan otomatis tersimpan ke variable {{token}} dan dipakai di semua request lain lewat collection-level Bearer Auth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000/api/v1", "type": "string" },
+    { "key": "token", "value": "", "type": "string" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": { "type": "text/javascript", "exec": [""] }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"you@example.com\",\n  \"password\": \"your-password\",\n  \"device_name\": \"Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "description": "Login. Response berisi 'token' - script Tests di bawah otomatis menyimpannya ke collection variable {{token}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('token', data.token);",
+                  "    console.log('Token saved:', data.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('token', '');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/dashboard?month=8&year=2026",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "dashboard"],
+              "query": [
+                { "key": "month", "value": "8" },
+                { "key": "year", "value": "2026" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "List Transactions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/transactions?type=all&category_id=all&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "transactions"],
+              "query": [
+                { "key": "type", "value": "all" },
+                { "key": "category_id", "value": "all" },
+                { "key": "start_date", "value": "2026-08-01", "disabled": true },
+                { "key": "end_date", "value": "2026-08-31", "disabled": true },
+                { "key": "page", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-08-02\",\n  \"type\": \"expense\",\n  \"category_id\": 1,\n  \"investment_id\": null,\n  \"amount\": 25000,\n  \"description\": \"Testing dari Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/transactions", "host": ["{{base_url}}"], "path": ["money-management", "transactions"] }
+          }
+        },
+        {
+          "name": "Update Transaction",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-08-02\",\n  \"type\": \"expense\",\n  \"category_id\": 1,\n  \"investment_id\": null,\n  \"amount\": 30000,\n  \"description\": \"Updated dari Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/money-management/transactions/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "transactions", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Transaction",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/transactions/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "transactions", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transfers",
+      "item": [
+        {
+          "name": "List Transfers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/money-management/transfers?page=1", "host": ["{{base_url}}"], "path": ["money-management", "transfers"], "query": [{ "key": "page", "value": "1" }] }
+          }
+        },
+        {
+          "name": "Create Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-08-02\",\n  \"from_account_id\": 1,\n  \"to_account_id\": 2,\n  \"amount\": 100000,\n  \"description\": \"Testing transfer dari Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/transfers", "host": ["{{base_url}}"], "path": ["money-management", "transfers"] }
+          }
+        },
+        {
+          "name": "Update Transfer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-08-02\",\n  \"from_account_id\": 1,\n  \"to_account_id\": 2,\n  \"amount\": 150000,\n  \"description\": \"Updated transfer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/money-management/transfers/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "transfers", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Transfer",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/transfers/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "transfers", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recurring",
+      "item": [
+        {
+          "name": "List Recurring (auto-process due items)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/money-management/recurring", "host": ["{{base_url}}"], "path": ["money-management", "recurring"] }
+          }
+        },
+        {
+          "name": "Create Recurring",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Langganan Netflix\",\n  \"type\": \"expense\",\n  \"finance_category_id\": 1,\n  \"finance_investment_id\": 1,\n  \"amount\": 65000,\n  \"frequency\": \"monthly\",\n  \"start_date\": \"2026-08-05\",\n  \"description\": \"Testing dari Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/recurring", "host": ["{{base_url}}"], "path": ["money-management", "recurring"] }
+          }
+        },
+        {
+          "name": "Delete Recurring",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/recurring/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "recurring", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Process Pending Recurring (manual trigger)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/money-management/recurring/process", "host": ["{{base_url}}"], "path": ["money-management", "recurring", "process"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Budgets",
+      "item": [
+        {
+          "name": "List Budgets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/budgets?month=8&year=2026",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "budgets"],
+              "query": [{ "key": "month", "value": "8" }, { "key": "year", "value": "2026" }]
+            }
+          }
+        },
+        {
+          "name": "Set Budget (create/update)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finance_category_id\": 1,\n  \"amount\": 500000,\n  \"month\": 8,\n  \"year\": 2026\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/budgets", "host": ["{{base_url}}"], "path": ["money-management", "budgets"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Summary",
+      "item": [
+        {
+          "name": "Get Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/summary?month=8&year=2026",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "summary"],
+              "query": [{ "key": "month", "value": "8" }, { "key": "year", "value": "2026" }]
+            }
+          }
+        },
+        {
+          "name": "Take Net Worth Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/money-management/summary/net-worth-snapshot", "host": ["{{base_url}}"], "path": ["money-management", "summary", "net-worth-snapshot"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Portfolios",
+      "item": [
+        {
+          "name": "List Portfolios",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/money-management/portfolios", "host": ["{{base_url}}"], "path": ["money-management", "portfolios"] }
+          }
+        },
+        {
+          "name": "Create Portfolio",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finance_investment_id\": 1,\n  \"account_name\": \"Dompet Testing\",\n  \"account_number\": null,\n  \"description\": \"Dibuat dari Postman\",\n  \"account_investment\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/portfolios", "host": ["{{base_url}}"], "path": ["money-management", "portfolios"] }
+          }
+        },
+        {
+          "name": "Show Portfolio",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/portfolios/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "portfolios", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Update Portfolio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finance_investment_id\": 1,\n  \"account_name\": \"Dompet Testing (updated)\",\n  \"account_number\": null,\n  \"description\": null,\n  \"account_investment\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/money-management/portfolios/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "portfolios", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Portfolio",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/portfolios/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "portfolios", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "List Portfolio Ledger Transactions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/portfolios/:id/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "portfolios", ":id", "transactions"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Create Portfolio Ledger Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"asset\": null,\n  \"lot\": null,\n  \"date\": \"2026-08-02\",\n  \"type\": \"deposit\",\n  \"amount\": 100000,\n  \"description\": \"Testing dari Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/money-management/portfolios/:id/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "portfolios", ":id", "transactions"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Update Portfolio Ledger Transaction",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"asset\": null,\n  \"lot\": null,\n  \"date\": \"2026-08-02\",\n  \"type\": \"deposit\",\n  \"amount\": 150000,\n  \"description\": \"Updated dari Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/money-management/portfolios/:id/transactions/:trxId",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "portfolios", ":id", "transactions", ":trxId"],
+              "variable": [{ "key": "id", "value": "1" }, { "key": "trxId", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Portfolio Ledger Transaction",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/portfolios/:id/transactions/:trxId",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "portfolios", ":id", "transactions", ":trxId"],
+              "variable": [{ "key": "id", "value": "1" }, { "key": "trxId", "value": "1" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "IPO",
+      "item": [
+        {
+          "name": "List IPO Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/money-management/ipo", "host": ["{{base_url}}"], "path": ["money-management", "ipo"] }
+          }
+        },
+        {
+          "name": "Create IPO Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finance_investment_id\": 1,\n  \"asset\": \"ABCD\",\n  \"order_date\": \"2026-08-02\",\n  \"price_per_share\": 500,\n  \"lot_ordered\": 10,\n  \"description\": \"Testing dari Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/ipo", "host": ["{{base_url}}"], "path": ["money-management", "ipo"] }
+          }
+        },
+        {
+          "name": "Update IPO Order (only while pending)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finance_investment_id\": 1,\n  \"asset\": \"ABCD\",\n  \"order_date\": \"2026-08-02\",\n  \"price_per_share\": 550,\n  \"lot_ordered\": 10,\n  \"description\": \"Updated dari Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/money-management/ipo/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "ipo", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Confirm Allotment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lot_allotted\": 5,\n  \"allotment_date\": \"2026-08-10\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/money-management/ipo/:id/confirm-allotment",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "ipo", ":id", "confirm-allotment"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Delete IPO Order",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/ipo/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "ipo", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stock Tracking",
+      "item": [
+        {
+          "name": "Get Stock Tracking Overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/money-management/stock-tracking", "host": ["{{base_url}}"], "path": ["money-management", "stock-tracking"] }
+          }
+        },
+        {
+          "name": "Update Emiten Price",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"asset\": \"ABCD\",\n  \"current_price\": 650\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/stock-tracking/price", "host": ["{{base_url}}"], "path": ["money-management", "stock-tracking", "price"] }
+          }
+        },
+        {
+          "name": "Store Trade (Buy/Sell)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finance_investment_id\": 1,\n  \"asset\": \"ABCD\",\n  \"type\": \"buy\",\n  \"trade_date\": \"2026-08-02\",\n  \"price_per_share\": 600,\n  \"lot\": 2,\n  \"description\": \"Testing dari Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/stock-tracking/trade", "host": ["{{base_url}}"], "path": ["money-management", "stock-tracking", "trade"] }
+          }
+        },
+        {
+          "name": "Delete Trade",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/stock-tracking/trade/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "stock-tracking", "trade", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Ledger Row From Tracking",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/stock-tracking/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "stock-tracking", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BTC Tracking",
+      "item": [
+        {
+          "name": "Get BTC Tracking Overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/money-management/btc-tracking", "host": ["{{base_url}}"], "path": ["money-management", "btc-tracking"] }
+          }
+        },
+        {
+          "name": "Delete Ledger Row From Tracking",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/btc-tracking/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "btc-tracking", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master Data",
+      "item": [
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/categories?type=expense",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "categories"],
+              "query": [{ "key": "type", "value": "expense" }]
+            }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kategori Testing\",\n  \"type\": \"expense\",\n  \"description\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/categories", "host": ["{{base_url}}"], "path": ["money-management", "categories"] }
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kategori Testing (updated)\",\n  \"type\": \"expense\",\n  \"description\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/money-management/categories/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "categories", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/categories/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "categories", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "List Investment Providers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/money-management/investments", "host": ["{{base_url}}"], "path": ["money-management", "investments"] }
+          }
+        },
+        {
+          "name": "Create Investment Provider",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bank Testing\",\n  \"code\": \"TEST\",\n  \"type\": \"other\",\n  \"description\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/investments", "host": ["{{base_url}}"], "path": ["money-management", "investments"] }
+          }
+        },
+        {
+          "name": "Update Investment Provider",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bank Testing (updated)\",\n  \"code\": \"TEST\",\n  \"type\": \"other\",\n  \"description\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/money-management/investments/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "investments", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Investment Provider",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/money-management/investments/:id",
+              "host": ["{{base_url}}"],
+              "path": ["money-management", "investments", ":id"],
+              "variable": [{ "key": "id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/money-management/settings", "host": ["{{base_url}}"], "path": ["money-management", "settings"] }
+          }
+        },
+        {
+          "name": "Save Settings",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payroll_start_day\": 25\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/money-management/settings", "host": ["{{base_url}}"], "path": ["money-management", "settings"] }
+          }
+        }
+      ]
+    }
+  ]
+}
