@@ -1,152 +1,69 @@
 # Changelog Stagging Semantic Version
 
-## [1.17.0] - 2026-07-03
+## [1.0.0] - 2026-08-17
 
-Not yet committed. Investment module rework (Portfolio, Bitcoin/Stocks Tracking, Internal Transfers) plus in-progress Travel Planner work.
+Pre-launch baseline. App has not gone live yet, so all work to date is consolidated into a single initial release instead of many incremental versions.
 
 ### Added
-- **Investment** sidebar menu with **Crypto** and **Stocks** submenus, replacing the old standalone "Bitcoin Tracking" item (`config/menu.php`).
-- New **Stocks Tracking** page (`StockTrackingController.php`, `stock-tracking/index.blade.php`), mirroring Bitcoin Tracking.
+
+**Core & Access Control**
+- Initial Metronic-based Laravel scaffold: base theme/menu system, auth boilerplate.
+- Authentication system: login/register, `Role` model, user-approval workflow, `EnsureUserIsApproved` / `EnsureUserIsAdministrator` middleware, and auth layout/pages.
+- Role & Permission management (`RoleController`, `PermissionController`, permission–role pivot) and admin Roles/Permissions/User List pages.
+- Multi-app structure: `AppController`, `AppRoleController`, `AppPermissionController`, `UserAppController`, plus forgot/reset-password pages.
+- `CurrencyHelper` / `GlobalHelper`, and a dedicated "Detail Expenses Rifqi" module with its own repository/service layer.
+
+**Money Management**
+- Core module baseline: Portfolio, Transactions, Master Data (expense/income categories, investments), Dashboard, and the core `finance_*` tables/models.
+- Account Settings page, Money Management Summary controller/page, Internal Transfers controller/page, Finance Settings, avatar upload, and `type = transfer` support on `finance_transactions`.
+- **Monthly Budget** module, `RecurringTransactionController`, `FinanceNetWorthSnapshot`, and an Internal Transfer receipt page.
+- Chart-based redesign of the Summary page, later rewritten to be driven directly by transaction data.
+- Balance visibility toggle ("show/hide saldo") on the dashboard and Transactions page.
+- **Bitcoin Tracking** page, later folded into an **Investment** sidebar menu with **Crypto** and **Stocks** submenus.
+- **Stocks Tracking** page mirroring Bitcoin Tracking, later expanded with IPO-sourced holdings and richer per-emiten activity detail.
+- **IPO Stocks** page (`IpoController`) for recording IPO subscriptions/allotments; `FinanceIpoOrder`, `FinanceEmitenPrice`, `FinanceEmitenTrade` models/tables.
 - `type` classification (`crypto` / `stock` / `other`) on investment providers, editable from Master Data → Investments.
 - `account_investment` flag on portfolio accounts, editable via a new Edit action on the Portfolio page.
-- **Asset / Emiten** tagging on Investment Transactions and Internal Transfers, so buying an asset via bank transfer now shows up in Crypto/Stocks Tracking.
+- **Asset / Emiten** tagging on Investment Transactions and Internal Transfers, so buying an asset via bank transfer shows up in Crypto/Stocks Tracking.
 - **Lot** tracking for stock transactions (Investment Transactions + Internal Transfers), with a per-emiten lot breakdown on Stocks Tracking.
 - Full **Edit** action for Internal Transfers and for Portfolio accounts (previously add/delete only).
 - Data migration merging duplicate one-row-per-asset portfolio accounts into one row per broker.
-- Description field for Travel Itinerary activities (trip detail page + add/edit modals).
-- Indonesian-localized date formatting on trip day headers.
 
-### Changed
-- Bitcoin/Stocks Tracking activity feeds now read from real Investment Transaction and asset-tagged Transfer records.
-- Bitcoin Tracking's crypto-account detection switched from name/code substring matching to the explicit `finance_investments.type` field.
-- Travel trip "Export Full" / "Export Itinerary" downloads rewritten from plain CSV to styled `.xlsx` workbooks (PhpSpreadsheet), including a per-person price breakdown.
-
-### Fixed
-- Portfolio balance double-counting risk removed when tagging asset/lot on a Transfer instead of requiring a second Investment Transaction.
-
----
-
-## [1.16.0] - 2026-06-08
-### Added
-- `number_of_persons` on Travel Trips and `cost_per_person` on Travel Itineraries, with per-person cost math.
-### Changed
-- Trip create/edit/show views and itinerary modals updated to capture and display per-person pricing.
-
-## [1.15.2] - 2026-06-08
-### Fixed
-- Stale/incorrect "last month" date handling in `BudgetController`, `MoneyManagementDashboardController`, and `SummaryController`.
-
-## [1.15.1] - 2026-06-07
-### Fixed
-- Daily Planner controller bugs and Money Management dashboard calculation issues.
-
-## [1.15.0] - 2026-05-30
-### Added
-- Recurring Activity engine for Daily Planner: `GenerateRecurringActivities` console command, `DailyPlannerRecurringActivity` model/table, and a dedicated recurring-activity management page.
-
-## [1.14.1] - 2026-05-30
-### Fixed
-- Flatpickr time-picker behavior on Daily Planner activity/index pages, plus documentation tweaks.
-
-## [1.14.0] - 2026-05-29
-### Added
-- **Daily Planner** module: `DailyPlannerController`, `DailyPlannerActivity` model, activity/index views, and seeder.
-
-## [1.13.0] - 2026-05-04
-### Added
-- Balance visibility toggle ("show/hide saldo") on the Money Management dashboard and Transactions page.
-
-## [1.12.2] - 2026-05-03
-### Changed
-- Removed the `text-dark` styling class from dashboard and transactions views for consistent theming.
-
-## [1.12.1] - 2026-05-03
-### Changed
-- Added `permissionType` entries to `config/menu.php`.
-
-## [1.12.0] - 2026-05-03
-### Added
-- **Bitcoin Tracking** page: `BtcTrackingController`, dedicated view, and sidebar menu entry.
-
-## [1.11.0] - 2026-05-03
-### Changed
-- Money Management Summary page rewritten to be driven directly by transaction data (major rewrite of `summary/index.blade.php` and `MoneyManagementDashboardController`).
-
-## [1.10.0] - 2026-04-29
-### Added
-- Chart-based redesign of the Summary page, with supporting `finance` settings.
-
-## [1.9.0] - 2026-04-26
-### Added
-- `WeddingSavingsTransaction` model/table.
-### Changed
-- Expanded filtering on the Transactions history page and the Wedding Planner page.
-
-## [1.8.0] - 2026-04-22
-### Added
+**Wedding Planner**
 - **Wedding Planner** module (`WeddingPlannerController`, `WeddingPlan`, `WeddingPlannerItem`) with its own page and menu.
-- Category filter on the Transactions page.
-### Fixed
-- Summary graphic rendering issue.
-### Changed
-- `config/menu.php` restructured/cleaned up.
+- `WeddingSavingsTransaction` model/table.
 
-## [1.7.0] - 2026-03-12
-### Added
+**Daily Planner**
+- **Daily Planner** module: `DailyPlannerController`, `DailyPlannerActivity` model, activity/index views, and seeder.
+- Recurring Activity engine: `GenerateRecurringActivities` console command, `DailyPlannerRecurringActivity` model/table, and a dedicated recurring-activity management page.
+
+**Travel Planner**
 - **Travel Planner** module: Trips, Budgets, Expenses, Itinerary, Dashboard, and trip-image handling, with full CRUD controllers/views and seeder.
-### Fixed
-- Monthly budget payroll calculation.
+- Description field for itinerary activities, and Indonesian-localized date formatting on trip day headers.
+- `number_of_persons` on Travel Trips and `cost_per_person` on Travel Itineraries, with per-person cost math.
+- "Export Full Trip" / "Export Itinerary" downloads as styled `.xlsx` workbooks (PhpSpreadsheet), including a per-person price breakdown.
+- **Edit** action for Budget Allocations (previously add/delete only).
+- **Packing checklist tab**: add/edit/delete items with category, quantity and notes, a per-item packed checkbox (AJAX toggle), and a progress bar.
+- Per-activity **Number of Persons** override on itineraries, so an activity not everyone joins can use its own person count instead of the trip default when splitting total ⇄ per-person cost. Surfaced as a "pax" badge on the itinerary table and as a column in both Excel exports.
 
-## [1.6.3] - 2026-02-08
-### Fixed
-- `TransferController` bugs and Money Management dashboard adjustments.
+**Mobile API**
+- **API v1** (`app/Http/Controllers/Api/V1/...`, Laravel Sanctum bearer tokens): auth, dashboard, transactions, budgets, summary, portfolio, transfers, recurring transactions, categories, settings, BTC tracking, stock tracking, and IPO endpoints for the KVWallet mobile app.
+- `EnsureApiUserIsApproved` middleware and a dedicated API exception handler for consistent JSON error responses.
+- Postman collection and internal docs (mobile app development guide, business-flow/database notes, deployment steps) documenting the API and mobile integration.
 
-## [1.6.2] - 2026-02-01
-### Fixed
-- Internal Transfer recording bug.
 ### Changed
-- Migration repointing `finance_transactions` / `finance_investment_transactions` foreign keys to `finance_portfolios`.
-
-## [1.6.1] - 2026-02-01
-### Added
-- Multi-app structure: `AppController`, `AppRoleController`, `AppPermissionController`, `UserAppController`, plus forgot/reset-password pages.
-### Changed
-- Budget controller flow and authentication flow refinements.
-
-## [1.6.0] - 2026-02-01
-### Added
-- **Monthly Budget** module, `RecurringTransactionController`, `FinanceNetWorthSnapshot`, and an Internal Transfer receipt page.
-### Changed
+- Theme color adjustments across auth pages and the sidebar footer; simplified user-account dropdown menu markup; `text-dark` styling removed for consistent theming.
+- `config/menu.php` restructured and cleaned up multiple times as modules were added.
 - Portfolios split/scoped by `user_id`; transactions migrated to reference portfolios directly.
+- Money Management Summary page rewritten to be driven directly by transaction data.
+- Bitcoin/Stocks Tracking activity feeds switched to read from real Investment Transaction and asset-tagged Transfer records; crypto-account detection switched from name/code substring matching to the explicit `finance_investments.type` field.
+- Trip-level "Edit Details" person-count change now only cascades to itinerary activities still following the trip default; activities with a manually overridden persons count are left untouched.
+- Itinerary cost display now always shows the per-person breakdown, even when an activity is priced as a flat Total Cost.
 
-## [1.5.0] - 2026-02-01
-### Added
-- Account Settings page/controller, Money Management Summary controller/page, Internal Transfers controller/page, Finance Settings, avatar upload, and `type = transfer` support on `finance_transactions`.
-
-## [1.4.1] - 2026-01-31
-### Changed
-- Simplified the user-account dropdown menu markup.
-
-## [1.4.0] - 2026-01-30
-### Added
-- **Money Management** module baseline: Portfolio, Transactions, Master Data (expense/income categories, investments), Dashboard, and the core `finance_*` tables/models. Marked as the first feature-complete milestone.
-
-## [1.3.0] - 2026-01-04
-### Added
-- Role & Permission management (`RoleController`, `PermissionController`, permission–role pivot) and admin Roles/Permissions/User List pages.
-
-## [1.2.1] - 2025-12-28
-### Changed
-- Theme color adjustments across auth pages and the sidebar footer.
-
-## [1.2.0] - 2025-12-28
-### Added
-- Authentication system: login/register (`AuthController`), `Role` model, user-approval workflow, `EnsureUserIsApproved`/`EnsureUserIsAdministrator` middleware, and auth layout/pages.
-
-## [1.1.0] - 2025-08-21
-### Added
-- `CurrencyHelper` / `GlobalHelper`, and a dedicated "Detail Expenses Rifqi" module (renamed from the generic Detail Expenses controller) with its own repository/service layer.
-
-## [1.0.0] - 2025-07-23
-### Added
-- Initial Metronic-based Laravel scaffold: base theme/menu system, auth boilerplate, Detail Expenses and Master Category modules.
+### Fixed
+- Monthly budget payroll calculation and Internal Transfer recording bugs.
+- Stale/incorrect "last month" date handling in `BudgetController`, `MoneyManagementDashboardController`, and `SummaryController`.
+- Daily Planner controller bugs, Flatpickr time-picker behavior, and Summary page graphic rendering.
+- Portfolio balance double-counting risk removed when tagging asset/lot on a Transfer instead of requiring a second Investment Transaction.
+- My Assets view and table ordering on the Bitcoin/Stock Tracking pages.
+- Investment/liquid-cash split on the Money Management dashboard now also recognizes provider id `11` as an investment account.

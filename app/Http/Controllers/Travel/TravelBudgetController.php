@@ -37,6 +37,27 @@ class TravelBudgetController extends Controller
         return redirect()->back()->with('success', 'Budget allocated successfully!');
     }
 
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'category' => 'required|string',
+            'amount' => 'required|numeric|min:0',
+            'notes' => 'nullable|string',
+        ]);
+
+        $budget = TravelBudget::findOrFail($id);
+        $trip = TravelTrip::with('budgets')->findOrFail($budget->trip_id);
+
+        $currentAllocated = $trip->budgets->where('id', '!=', $budget->id)->sum('amount');
+        if (($currentAllocated + $validated['amount']) > $trip->total_budget) {
+            return redirect()->back()->with('warning', 'Calculation Error: This allocation would exceed your mission budget of ' . $trip->currency . ' ' . number_format($trip->total_budget));
+        }
+
+        $budget->update($validated);
+
+        return redirect()->back()->with('success', 'Budget allocation updated!');
+    }
+
     public function destroy($id)
     {
         $budget = TravelBudget::findOrFail($id);

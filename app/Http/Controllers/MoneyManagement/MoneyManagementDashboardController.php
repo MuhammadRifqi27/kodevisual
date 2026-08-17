@@ -70,7 +70,7 @@ class MoneyManagementDashboardController extends Controller
 
             // Heuristic to separate liquid cash from investments
             $invId = strtoupper($portfolio->investment->id ?? '');
-            $isInvestment = in_array($invId, [1, 2, 8, 9]);
+            $isInvestment = in_array($invId, [1, 2, 8, 9, 11]);
 
             if ($isInvestment) {
                 $totalInvestmentValue += $balance;

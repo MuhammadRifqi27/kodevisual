@@ -27,6 +27,7 @@ use App\Http\Controllers\Travel\TravelTripController;
 use App\Http\Controllers\Travel\TravelItineraryController;
 use App\Http\Controllers\Travel\TravelBudgetController;
 use App\Http\Controllers\Travel\TravelExpenseController;
+use App\Http\Controllers\Travel\TravelPackingItemController;
 use App\Http\Controllers\WeddingPlannerController;
 use Illuminate\Support\Facades\Route;
 
@@ -89,10 +90,17 @@ Route::middleware(['auth', 'approved'])->group(function () {
         Route::put('/itineraries/{id}', [TravelItineraryController::class, 'update'])->name('itineraries.update');
         Route::delete('/itineraries/{id}', [TravelItineraryController::class, 'destroy'])->name('itineraries.destroy');
 
+        // Packing List
+        Route::post('/packing-items', [TravelPackingItemController::class, 'store'])->name('packing-items.store');
+        Route::put('/packing-items/{id}', [TravelPackingItemController::class, 'update'])->name('packing-items.update');
+        Route::patch('/packing-items/{id}/toggle', [TravelPackingItemController::class, 'togglePacked'])->name('packing-items.toggle');
+        Route::delete('/packing-items/{id}', [TravelPackingItemController::class, 'destroy'])->name('packing-items.destroy');
+
         // Budgets
         Route::middleware(['can:travel-planner.budgets'])->prefix('budgets')->name('budgets.')->group(function () {
             Route::get('/', [TravelBudgetController::class, 'index'])->name('index');
             Route::post('/', [TravelBudgetController::class, 'store'])->name('store');
+            Route::put('/{id}', [TravelBudgetController::class, 'update'])->name('update');
             Route::delete('/{id}', [TravelBudgetController::class, 'destroy'])->name('destroy');
         });
 

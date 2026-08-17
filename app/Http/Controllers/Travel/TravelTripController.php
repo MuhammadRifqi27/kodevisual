@@ -63,7 +63,7 @@ class TravelTripController extends Controller
 
     public function show($id)
     {
-        $trip = TravelTrip::with(['itineraries', 'budgets', 'expenses', 'coverImage'])->findOrFail($id);
+        $trip = TravelTrip::with(['itineraries', 'budgets', 'expenses', 'packingItems', 'coverImage'])->findOrFail($id);
         return view('pages.travel.trips.show', compact('trip'));
     }
 
@@ -93,15 +93,22 @@ class TravelTripController extends Controller
         unset($validated['cover_image']);
         $trip->update($validated);
 
-        // If number_of_persons changed, recalculate itineraries
+        // If number_of_persons changed, recalculate itineraries that still follow the
+        // trip's default persons count. Activities with a manually overridden persons
+        // count (different from the old trip default) are left untouched.
         if ($oldPersons != $trip->number_of_persons) {
             $newPersons = max($trip->number_of_persons, 1);
             foreach ($trip->itineraries as $itinerary) {
+                if ((int) $itinerary->number_of_persons !== (int) $oldPersons) {
+                    continue;
+                }
+
                 if ($itinerary->cost_type === 'total') {
                     $itinerary->cost_per_person = $itinerary->cost_estimate / $newPersons;
                 } else {
                     $itinerary->cost_estimate = $itinerary->cost_per_person * $newPersons;
                 }
+                $itinerary->number_of_persons = $newPersons;
                 $itinerary->save();
             }
         }
@@ -290,12 +297,12 @@ class TravelTripController extends Controller
             $sheet->getStyle('A' . $currentRow)->getFont()->setBold(true)->setSize(11)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('1F4E79'));
 
             $currentRow++; // Row 8 for Itinerary Headers
-            $itineraryHeaders = ['Day', 'Date', 'Time', 'Activity', 'Description', 'Location', 'Notes', 'Total Cost Estimate (' . $trip->currency . ')', 'Cost Per Person (' . $trip->currency . ')'];
+            $itineraryHeaders = ['Day', 'Date', 'Time', 'Activity', 'Description', 'Location', 'Notes', 'Persons', 'Total Cost Estimate (' . $trip->currency . ')', 'Cost Per Person (' . $trip->currency . ')'];
             foreach ($itineraryHeaders as $index => $ih) {
                 $col = chr(65 + $index);
                 $sheet->setCellValue($col . $currentRow, $ih);
             }
-            $sheet->getStyle("A{$currentRow}:I{$currentRow}")->applyFromArray($formalHeaderStyle);
+            $sheet->getStyle("A{$currentRow}:J{$currentRow}")->applyFromArray($formalHeaderStyle);
 
             $startItineraryDataRow = $currentRow + 1;
             $itineraries = $trip->itineraries->sortBy(['day_number', 'time']);
@@ -328,24 +335,26 @@ class TravelTripController extends Controller
                     $sheet->setCellValue("E{$rowIdx}", $item->description);
                     $sheet->setCellValue("F{$rowIdx}", $item->location);
                     $sheet->setCellValue("G{$rowIdx}", $item->notes);
-                    $sheet->setCellValue("H{$rowIdx}", $item->cost_estimate);
-                    $sheet->setCellValue("I{$rowIdx}", $item->cost_per_person);
+                    $sheet->setCellValue("H{$rowIdx}", $item->number_of_persons ?? $trip->number_of_persons);
+                    $sheet->setCellValue("I{$rowIdx}", $item->cost_estimate);
+                    $sheet->setCellValue("J{$rowIdx}", $item->cost_per_person);
 
                     $sheet->getStyle("C{$rowIdx}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("H{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
+                    $sheet->getStyle("H{$rowIdx}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("I{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
+                    $sheet->getStyle("J{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
                 }
                 $itineraryDataRow += $count;
             }
 
             if ($itineraries->isEmpty()) {
                 $sheet->setCellValue("A{$itineraryDataRow}", 'No activities recorded');
-                $sheet->mergeCells("A{$itineraryDataRow}:I{$itineraryDataRow}");
+                $sheet->mergeCells("A{$itineraryDataRow}:J{$itineraryDataRow}");
                 $sheet->getStyle("A{$itineraryDataRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                 $itineraryDataRow++;
             }
 
-            $sheet->getStyle("A" . ($startItineraryDataRow - 1) . ":I" . ($itineraryDataRow - 1))->applyFromArray($gridBorderStyle);
+            $sheet->getStyle("A" . ($startItineraryDataRow - 1) . ":J" . ($itineraryDataRow - 1))->applyFromArray($gridBorderStyle);
 
             // Section 3: Budget Allocations
             $currentRow = $itineraryDataRow + 2;
@@ -419,7 +428,7 @@ class TravelTripController extends Controller
             $sheet->getStyle("A" . ($startExpenseDataRow - 1) . ":E" . ($expenseDataRow - 1))->applyFromArray($gridBorderStyle);
 
             // Auto column widths for all columns
-            foreach (range('A', 'I') as $col) {
+            foreach (range('A', 'J') as $col) {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
             }
 
@@ -460,7 +469,7 @@ class TravelTripController extends Controller
             $sheet->getStyle('A2')->getFont()->setItalic(true);
 
             // Headers
-            $headersRow = ['Day', 'Date', 'Time', 'Activity', 'Description', 'Location', 'Notes', 'Total Cost Estimate (' . $trip->currency . ')', 'Cost Per Person (' . $trip->currency . ')'];
+            $headersRow = ['Day', 'Date', 'Time', 'Activity', 'Description', 'Location', 'Notes', 'Persons', 'Total Cost Estimate (' . $trip->currency . ')', 'Cost Per Person (' . $trip->currency . ')'];
             $colLetter = 'A';
             foreach ($headersRow as $headerText) {
                 $sheet->setCellValue($colLetter . '4', $headerText);
@@ -468,7 +477,7 @@ class TravelTripController extends Controller
             }
 
             // Style headers
-            $headerRange = 'A4:I4';
+            $headerRange = 'A4:J4';
             $sheet->getStyle($headerRange)->getFont()->setBold(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_WHITE));
             $sheet->getStyle($headerRange)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('1F4E79'); // Formal Dark Navy Blue
             $sheet->getStyle($headerRange)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
@@ -508,12 +517,14 @@ class TravelTripController extends Controller
                     $sheet->setCellValue("E{$rowIdx}", $item->description);
                     $sheet->setCellValue("F{$rowIdx}", $item->location);
                     $sheet->setCellValue("G{$rowIdx}", $item->notes);
-                    $sheet->setCellValue("H{$rowIdx}", $item->cost_estimate);
-                    $sheet->setCellValue("I{$rowIdx}", $item->cost_per_person);
+                    $sheet->setCellValue("H{$rowIdx}", $item->number_of_persons ?? $trip->number_of_persons);
+                    $sheet->setCellValue("I{$rowIdx}", $item->cost_estimate);
+                    $sheet->setCellValue("J{$rowIdx}", $item->cost_per_person);
 
                     $sheet->getStyle("C{$rowIdx}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("H{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
+                    $sheet->getStyle("H{$rowIdx}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("I{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
+                    $sheet->getStyle("J{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
 
                     $totalCost += $item->cost_estimate;
                     $totalCostPerPerson += $item->cost_per_person;
@@ -524,15 +535,15 @@ class TravelTripController extends Controller
 
             // Total row
             $sheet->setCellValue("A{$currentRow}", 'TOTAL');
-            $sheet->mergeCells("A{$currentRow}:G{$currentRow}");
+            $sheet->mergeCells("A{$currentRow}:H{$currentRow}");
             $sheet->getStyle("A{$currentRow}")->getFont()->setBold(true);
             $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
 
-            $sheet->setCellValue("H{$currentRow}", $totalCost);
-            $sheet->setCellValue("I{$currentRow}", $totalCostPerPerson);
-            $sheet->getStyle("H{$currentRow}:I{$currentRow}")->getFont()->setBold(true);
-            $sheet->getStyle("H{$currentRow}")->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->setCellValue("I{$currentRow}", $totalCost);
+            $sheet->setCellValue("J{$currentRow}", $totalCostPerPerson);
+            $sheet->getStyle("I{$currentRow}:J{$currentRow}")->getFont()->setBold(true);
             $sheet->getStyle("I{$currentRow}")->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle("J{$currentRow}")->getNumberFormat()->setFormatCode('#,##0');
 
             // Apply borders to table
             $styleArray = [
@@ -543,7 +554,7 @@ class TravelTripController extends Controller
                     ],
                 ],
             ];
-            $sheet->getStyle('A4:I' . $currentRow)->applyFromArray($styleArray);
+            $sheet->getStyle('A4:J' . $currentRow)->applyFromArray($styleArray);
 
             // Double line bottom border for total row
             $totalRowStyle = [
@@ -558,10 +569,10 @@ class TravelTripController extends Controller
                     ],
                 ],
             ];
-            $sheet->getStyle("A{$currentRow}:I{$currentRow}")->applyFromArray($totalRowStyle);
+            $sheet->getStyle("A{$currentRow}:J{$currentRow}")->applyFromArray($totalRowStyle);
 
             // Set auto column width
-            foreach (range('A', 'I') as $col) {
+            foreach (range('A', 'J') as $col) {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
             }
 

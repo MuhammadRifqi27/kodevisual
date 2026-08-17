@@ -37,6 +37,11 @@ class TravelTrip extends Model
         return $this->hasMany(TravelExpense::class, 'trip_id');
     }
 
+    public function packingItems()
+    {
+        return $this->hasMany(TravelPackingItem::class, 'trip_id');
+    }
+
     public function images()
     {
         return $this->hasMany(TravelTripImage::class, 'trip_id');

@@ -21,6 +21,7 @@ class TravelItineraryController extends Controller
             'cost_type'      => 'required|in:total,per_person',
             'cost_estimate'  => 'nullable|numeric|min:0',
             'cost_per_person' => 'nullable|numeric|min:0',
+            'number_of_persons' => 'nullable|integer|min:1',
         ]);
 
         $trip = TravelTrip::findOrFail($validated['trip_id']);
@@ -43,8 +44,10 @@ class TravelItineraryController extends Controller
         $currentDate = $dt->copy()->startOfDay();
         $validated['day_number'] = $startDate->diffInDays($currentDate) + 1;
 
-        // Calculate cost based on cost_type
-        $persons = max($trip->number_of_persons, 1);
+        // Calculate cost based on cost_type, using this activity's own persons count
+        // (falls back to the trip's default when not overridden per activity)
+        $persons = max($validated['number_of_persons'] ?? $trip->number_of_persons, 1);
+        $validated['number_of_persons'] = $persons;
 
         if ($validated['cost_type'] === 'total') {
             // User entered total cost → derive per-person
@@ -74,6 +77,7 @@ class TravelItineraryController extends Controller
             'cost_type'       => 'required|in:total,per_person',
             'cost_estimate'   => 'nullable|numeric|min:0',
             'cost_per_person' => 'nullable|numeric|min:0',
+            'number_of_persons' => 'nullable|integer|min:1',
         ]);
 
         $dt = Carbon::parse($validated['datetime']);
@@ -94,8 +98,9 @@ class TravelItineraryController extends Controller
         $currentDate = $dt->copy()->startOfDay();
         $validated['day_number'] = $startDate->diffInDays($currentDate) + 1;
 
-        // Calculate cost based on cost_type
-        $persons = max($trip->number_of_persons, 1);
+        // Calculate cost based on cost_type, using this activity's own persons count
+        $persons = max($validated['number_of_persons'] ?? $trip->number_of_persons, 1);
+        $validated['number_of_persons'] = $persons;
 
         if ($validated['cost_type'] === 'total') {
             $validated['cost_estimate'] = $validated['cost_estimate'] ?? 0;

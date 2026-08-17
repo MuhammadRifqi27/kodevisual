@@ -126,6 +126,9 @@
                     <li class="nav-item mt-2">
                         <a class="nav-link text-active-primary ms-0 me-10 py-5" data-bs-toggle="tab" href="#kt_trip_expenses">Expenses</a>
                     </li>
+                    <li class="nav-item mt-2">
+                        <a class="nav-link text-active-primary ms-0 me-10 py-5" data-bs-toggle="tab" href="#kt_trip_packing">Packing List</a>
+                    </li>
                 </ul>
                 <!--begin::Navs-->
             </div>
@@ -290,8 +293,12 @@
                                                                 @if($activity->cost_type === 'per_person')
                                                                     ({{ $trip->currency }} {{ number_format($activity->cost_per_person, 0) }}/person)
                                                                 @else
-                                                                    (Total Cost)
+                                                                    ({{ $trip->currency }} {{ number_format($activity->cost_per_person, 0) }}/person)
                                                                 @endif
+                                                            </span>
+                                                            @php $activityPersons = $activity->number_of_persons ?? $trip->number_of_persons; @endphp
+                                                            <span class="badge badge-light-{{ $activityPersons != $trip->number_of_persons ? 'danger' : 'secondary' }} fs-8 mt-1">
+                                                                <i class="ki-outline ki-people fs-8 me-1"></i>{{ $activityPersons }} pax
                                                             </span>
                                                         </div>
                                                     </td>
@@ -306,6 +313,7 @@
                                                                 data-cost-type="{{ $activity->cost_type }}"
                                                                 data-cost-estimate="{{ $activity->cost_estimate }}"
                                                                 data-cost-per-person="{{ $activity->cost_per_person }}"
+                                                                data-number-of-persons="{{ $activity->number_of_persons ?? $trip->number_of_persons }}"
                                                                 data-update-url="{{ route('travel.itineraries.update', $activity->id) }}">
                                                                 <i class="ki-outline ki-pencil fs-3"></i>
                                                             </button>
@@ -435,6 +443,7 @@
                                             <thead>
                                                 <tr class="text-start text-gray-400 fw-bold fs-7 text-uppercase gs-0">
                                                     <th class="min-w-200px">Category</th>
+                                                    <th class="min-w-200px">Notes</th>
                                                     <th class="text-end min-w-100px">Amount Allocated</th>
                                                 </tr>
                                             </thead>
@@ -447,9 +456,22 @@
                                                                 {{ $budget->category }}
                                                             </div>
                                                         </td>
+                                                        <td class="text-gray-900 fw-bold fs-6">
+                                                            <div class="d-flex align-items-center">
+                                                                {{ $budget->notes }}
+                                                            </div>
+                                                        </td>
                                                         <td class="text-end">
                                                             <div class="d-flex align-items-center justify-content-end">
                                                                 <span class="text-gray-900 fw-bold fs-6 me-3">{{ $trip->currency }} {{ number_format($budget->amount, 0) }}</span>
+                                                                <button type="button" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm edit-budget-btn me-2"
+                                                                    data-id="{{ $budget->id }}"
+                                                                    data-category="{{ $budget->category }}"
+                                                                    data-amount="{{ $budget->amount }}"
+                                                                    data-notes="{{ $budget->notes }}"
+                                                                    data-update-url="{{ route('travel.budgets.update', $budget->id) }}">
+                                                                    <i class="ki-outline ki-pencil fs-3"></i>
+                                                                </button>
                                                                 <form action="{{ route('travel.budgets.destroy', $budget->id) }}" method="POST" class="delete-form">
                                                                     @csrf @method('DELETE')
                                                                     <button type="button" class="btn btn-icon btn-active-color-danger btn-sm swal-delete-btn" data-title="Delete budget allocation for {{ $budget->category }}?">
@@ -518,6 +540,107 @@
                                             <span class="text-muted">No expenses recorded yet. Keep track of your coins!</span>
                                         </div>
                                     @endforelse
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!--begin::Packing List Tab-->
+                <div class="tab-pane fade" id="kt_trip_packing" role="tabpanel">
+                    <div class="row g-6 g-xl-9">
+                        <div class="col-lg-12">
+                            <div class="card card-flush shadow-sm" style="border-radius: 20px;">
+                                <div class="card-header pt-7">
+                                    <h3 class="card-title align-items-start flex-column">
+                                        <span class="card-label fw-bold text-gray-900 fs-3">Packing Checklist</span>
+                                        <span class="text-muted mt-1 fw-semibold fs-6">Daftar barang bawaan yang perlu disiapkan sebelum berangkat.</span>
+                                    </h3>
+                                    <div class="card-toolbar">
+                                        <button class="btn btn-sm btn-light-primary" data-bs-toggle="modal" data-bs-target="#kt_modal_add_packing_item">
+                                            <i class="ki-outline ki-plus fs-2"></i> Add Item
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    @php
+                                        $packingTotal = $trip->packingItems->count();
+                                        $packingDone = $trip->packingItems->where('is_packed', true)->count();
+                                        $packingPercent = $packingTotal > 0 ? round(($packingDone / $packingTotal) * 100) : 0;
+                                    @endphp
+                                    @if($packingTotal > 0)
+                                        <div class="d-flex align-items-center mb-6">
+                                            <div class="flex-grow-1 me-4">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span class="fw-semibold text-gray-600 fs-7">Progress Packing</span>
+                                                    <span class="fw-bold text-gray-800 fs-7">{{ $packingDone }} / {{ $packingTotal }} ({{ $packingPercent }}%)</span>
+                                                </div>
+                                                <div class="progress h-6px">
+                                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ $packingPercent }}%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <div class="table-responsive">
+                                        <table class="table align-middle table-row-dashed fs-6 gy-5">
+                                            <thead>
+                                                <tr class="text-start text-gray-400 fw-bold fs-7 text-uppercase gs-0">
+                                                    <th class="w-25px">Packed</th>
+                                                    <th class="min-w-150px">Category</th>
+                                                    <th class="min-w-200px">Item</th>
+                                                    <th class="text-center min-w-75px">Qty</th>
+                                                    <th class="min-w-200px">Notes</th>
+                                                    <th class="text-end min-w-100px">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="text-gray-600 fw-semibold">
+                                                @forelse($trip->packingItems->sortBy('category') as $item)
+                                                    <tr>
+                                                        <td>
+                                                            <div class="form-check form-check-custom form-check-solid">
+                                                                <input class="form-check-input packing-item-checkbox" type="checkbox"
+                                                                    data-toggle-url="{{ route('travel.packing-items.toggle', $item->id) }}"
+                                                                    {{ $item->is_packed ? 'checked' : '' }} />
+                                                            </div>
+                                                        </td>
+                                                        <td class="{{ $item->is_packed ? 'text-muted text-decoration-line-through' : 'text-gray-900 fw-bold' }} fs-6 packing-item-category">
+                                                            {{ $item->category ?: '-' }}
+                                                        </td>
+                                                        <td class="{{ $item->is_packed ? 'text-muted text-decoration-line-through' : 'text-gray-900 fw-bold' }} fs-6 packing-item-name">
+                                                            {{ $item->item_name }}
+                                                        </td>
+                                                        <td class="text-center packing-item-qty">{{ $item->quantity }}</td>
+                                                        <td class="packing-item-notes">{{ $item->notes }}</td>
+                                                        <td class="text-end">
+                                                            <div class="d-flex justify-content-end gap-2">
+                                                                <button type="button" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm edit-packing-btn"
+                                                                    data-id="{{ $item->id }}"
+                                                                    data-category="{{ $item->category }}"
+                                                                    data-item-name="{{ $item->item_name }}"
+                                                                    data-quantity="{{ $item->quantity }}"
+                                                                    data-notes="{{ $item->notes }}"
+                                                                    data-update-url="{{ route('travel.packing-items.update', $item->id) }}">
+                                                                    <i class="ki-outline ki-pencil fs-3"></i>
+                                                                </button>
+                                                                <form action="{{ route('travel.packing-items.destroy', $item->id) }}" method="POST" class="delete-form m-0">
+                                                                    @csrf @method('DELETE')
+                                                                    <button type="button" class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm swal-delete-btn" data-title="Remove packing item: {{ $item->item_name }}?">
+                                                                        <i class="ki-outline ki-trash fs-3"></i>
+                                                                    </button>
+                                                                </form>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="6" class="text-center py-10">
+                                                            <span class="text-muted">Belum ada barang di checklist. Mulai siapkan bawaanmu!</span>
+                                                        </td>
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -617,20 +740,27 @@
             function initPricingLogic(modalId) {
                 let modal = document.getElementById(modalId);
                 if (!modal) return;
-                
-                let persons = parseInt(modal.getAttribute('data-persons')) || 1;
+
+                let defaultPersons = parseInt(modal.getAttribute('data-persons')) || 1;
                 let costTypeSelect = modal.querySelector('select[name="cost_type"]');
                 let costEstimateInput = modal.querySelector('input[name="cost_estimate"]');
                 let costPerPersonInput = modal.querySelector('input[name="cost_per_person"]');
-                
+                let personsInput = modal.querySelector('input[name="number_of_persons"]');
+
+                function getPersons() {
+                    let val = parseInt(personsInput ? personsInput.value : defaultPersons);
+                    return (val && val > 0) ? val : 1;
+                }
+
                 function updateFields() {
                     let costType = costTypeSelect.value;
+                    let persons = getPersons();
                     if (costType === 'total') {
                         costEstimateInput.removeAttribute('readonly');
                         costEstimateInput.classList.remove('bg-light');
                         costPerPersonInput.setAttribute('readonly', 'readonly');
                         costPerPersonInput.classList.add('bg-light');
-                        
+
                         let total = parseFloat(costEstimateInput.value) || 0;
                         costPerPersonInput.value = (total / persons).toFixed(0);
                     } else {
@@ -638,33 +768,37 @@
                         costPerPersonInput.classList.remove('bg-light');
                         costEstimateInput.setAttribute('readonly', 'readonly');
                         costEstimateInput.classList.add('bg-light');
-                        
+
                         let perPerson = parseFloat(costPerPersonInput.value) || 0;
                         costEstimateInput.value = (perPerson * persons).toFixed(0);
                     }
                 }
-                
+
                 costTypeSelect.addEventListener('change', updateFields);
-                
+
                 costEstimateInput.addEventListener('input', function() {
                     if (costTypeSelect.value === 'total') {
                         let total = parseFloat(costEstimateInput.value) || 0;
-                        costPerPersonInput.value = (total / persons).toFixed(0);
+                        costPerPersonInput.value = (total / getPersons()).toFixed(0);
                     }
                 });
-                
+
                 costPerPersonInput.addEventListener('input', function() {
                     if (costTypeSelect.value === 'per_person') {
                         let perPerson = parseFloat(costPerPersonInput.value) || 0;
-                        costEstimateInput.value = (perPerson * persons).toFixed(0);
+                        costEstimateInput.value = (perPerson * getPersons()).toFixed(0);
                     }
                 });
-                
+
+                if (personsInput) {
+                    personsInput.addEventListener('input', updateFields);
+                }
+
                 // Expose updateFields function to window for manual triggers
                 if (modalId === 'kt_modal_edit_itinerary') {
                     window.updateEditPricing = updateFields;
                 }
-                
+
                 // Initial run
                 updateFields();
             }
@@ -693,9 +827,10 @@
                 modal.find('#edit_description').val(btn.data('description'));
                 modal.find('#edit_location').val(btn.data('location'));
                 modal.find('#edit_cost_type').val(btn.data('cost-type'));
+                modal.find('#edit_number_of_persons').val(btn.data('number-of-persons'));
                 modal.find('#edit_cost_estimate').val(btn.data('cost-estimate'));
                 modal.find('#edit_cost_per_person').val(btn.data('cost-per-person'));
-                
+
                 // Trigger update fields after population
                 if (typeof window.updateEditPricing === 'function') {
                     window.updateEditPricing();
@@ -703,6 +838,70 @@
                 
                 // Show modal
                 modal.modal('show');
+            });
+
+            // Handle Edit Budget Button Click
+            $(document).on('click', '.edit-budget-btn', function() {
+                let btn = $(this);
+                let modal = $('#kt_modal_edit_budget');
+                let form = $('#edit_budget_form');
+
+                // Set form action
+                form.attr('action', btn.data('update-url'));
+
+                // Fill in inputs
+                modal.find('#edit_budget_category').val(btn.data('category')).trigger('change');
+                modal.find('#edit_budget_amount').val(btn.data('amount'));
+                modal.find('#edit_budget_notes').val(btn.data('notes'));
+
+                // Show modal
+                modal.modal('show');
+            });
+
+            // Handle Edit Packing Item Button Click
+            $(document).on('click', '.edit-packing-btn', function() {
+                let btn = $(this);
+                let modal = $('#kt_modal_edit_packing_item');
+                let form = $('#edit_packing_item_form');
+
+                // Set form action
+                form.attr('action', btn.data('update-url'));
+
+                // Fill in inputs
+                modal.find('#edit_packing_category').val(btn.data('category')).trigger('change');
+                modal.find('#edit_packing_item_name').val(btn.data('item-name'));
+                modal.find('#edit_packing_quantity').val(btn.data('quantity'));
+                modal.find('#edit_packing_notes').val(btn.data('notes'));
+
+                // Show modal
+                modal.modal('show');
+            });
+
+            // Handle Packing Item Checkbox Toggle
+            $(document).on('change', '.packing-item-checkbox', function() {
+                let checkbox = $(this);
+                let row = checkbox.closest('tr');
+
+                $.ajax({
+                    url: checkbox.data('toggle-url'),
+                    type: 'PATCH',
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                    success: function(res) {
+                        let packed = res.is_packed;
+                        row.find('.packing-item-category, .packing-item-name').toggleClass('text-muted text-decoration-line-through', packed);
+                        row.find('.packing-item-category, .packing-item-name').toggleClass('text-gray-900 fw-bold', !packed);
+                    },
+                    error: function() {
+                        checkbox.prop('checked', !checkbox.prop('checked'));
+                        Swal.fire({
+                            text: "Gagal memperbarui status barang. Coba lagi.",
+                            icon: "error",
+                            buttonsStyling: false,
+                            confirmButtonText: "OK",
+                            customClass: { confirmButton: "btn btn-danger" }
+                        });
+                    }
+                });
             });
 
         });
