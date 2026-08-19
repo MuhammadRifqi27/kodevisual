@@ -292,6 +292,8 @@ Route::middleware(['auth', 'approved'])->group(function () {
             // User List Routes
             Route::get('/user-list', [UserApprovalController::class, 'listing'])->name('user-approval.listing');
             Route::get('/user-list/datatable', [UserApprovalController::class, 'listingDatatable'])->name('user-approval.listing.datatable');
+            Route::get('/user-approval/edit/{id}', [UserApprovalController::class, 'edit'])->name('user-approval.edit');
+            Route::put('/user-approval/update/{id}', [UserApprovalController::class, 'update'])->name('user-approval.update');
             Route::delete('/user-approval/destroy/{id}', [UserApprovalController::class, 'destroy'])->name('user-approval.destroy');
 
             // New: User App Access Management

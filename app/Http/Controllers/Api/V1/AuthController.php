@@ -19,22 +19,23 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'login' => 'required|string',
             'password' => 'required|string',
             'device_name' => 'required|string|max:255',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $loginField = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $user = User::where($loginField, $request->login)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Email atau password salah.'],
+                'login' => ['Email/Username atau password salah.'],
             ]);
         }
 
         if (! $user->is_approved) {
             throw ValidationException::withMessages([
-                'email' => ['Akun Anda masih menunggu persetujuan administrator.'],
+                'login' => ['Akun Anda masih menunggu persetujuan administrator.'],
             ]);
         }
 
@@ -73,6 +74,7 @@ class AuthController extends Controller
         return [
             'id' => $user->id,
             'name' => $user->name,
+            'username' => $user->username,
             'email' => $user->email,
             'avatar_url' => $user->avatar_url,
             'money_management_permissions' => $moneyManagementPermissions,

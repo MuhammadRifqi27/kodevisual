@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Services\Auth\AuthService;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 
 class UserApprovalController extends Controller
@@ -35,7 +37,8 @@ class UserApprovalController extends Controller
 
     public function listing()
     {
-        return view('pages.admin.user_list');
+        $roles = Role::all();
+        return view('pages.admin.user_list', compact('roles'));
     }
 
     public function listingDatatable()
@@ -75,6 +78,36 @@ class UserApprovalController extends Controller
         }
     }
     
+    public function edit($id)
+    {
+        $user = User::findOrFail($id);
+        return response()->json(['user' => $user]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => ['nullable', 'string', 'max:255', Rule::unique('users', 'username')->ignore($user->id)],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'role_id' => 'nullable|exists:roles,id',
+            'is_approved' => 'required|boolean',
+            'password' => 'nullable|string|min:8|confirmed',
+        ]);
+
+        $user->fill($request->only('name', 'username', 'email', 'role_id', 'is_approved'));
+
+        if ($request->filled('password')) {
+            $user->password = $request->password;
+        }
+
+        $user->save();
+
+        return response()->json(['success' => 'User updated successfully.']);
+    }
+
     public function destroy($id)
     {
         User::find($id)->delete();

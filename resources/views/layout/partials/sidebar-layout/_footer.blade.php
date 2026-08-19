@@ -10,7 +10,7 @@
 		<!--end::Copyright-->
 		<!--begin::Menu-->
 		<div class="text-gray-900 order-1 order-md-1">
-			<span class="text-muted fw-semibold me-1">Created by Cloudyhair</span>
+			<span class="text-muted fw-semibold me-1">Created by Team IT Kode Visual</span>
 		</div>
 		{{-- <ul class="menu menu-gray-600 menu-hover-primary fw-semibold order-1">
 			<li class="menu-item">

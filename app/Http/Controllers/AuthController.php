@@ -31,11 +31,15 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'login' => 'required|string',
             'password' => 'required',
         ]);
 
-        $credentials = $request->only('email', 'password');
+        $loginField = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $credentials = [
+            $loginField => $request->login,
+            'password' => $request->password,
+        ];
         $remember = $request->has('remember');
 
         if ($this->authService->login($credentials, $remember)) {
@@ -44,8 +48,8 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'email' => 'These credentials do not match our records.',
-        ])->onlyInput('email');
+            'login' => 'These credentials do not match our records.',
+        ])->onlyInput('login');
     }
 
     public function logout(Request $request)
