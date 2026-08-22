@@ -1,0 +1,310 @@
+DOKUMENTASI APLIKASI MONEY MANAGEMENT - ALUR BISNIS & STRUKTUR DATABASE
+=========================================================================
+Dokumen ini menjelaskan alur proses bisnis modul Money Management (kode_visual)
+dan tabel-tabel database yang dipakai. Ditulis berdasarkan pembacaan langsung
+migration, model, controller, dan route yang ada di kode saat ini.
+
+Status saat ini: aplikasi web ini HANYA dipakai oleh admin/pengguna internal
+(login via session, bukan API). Rencana ke depan akan dibuat aplikasi mobile
+yang terhubung ke backend Laravel yang sama lewat API (belum diimplementasikan,
+baru sebatas rencana teknis - lihat BAGIAN 5).
+
+
+BAGIAN 0 - RINGKASAN APLIKASI
+-------------------------------
+- Framework: Laravel 10 (PHP 8.1+), MySQL.
+- Money Management adalah salah satu "app" di dalam sistem multi-app/role yang
+  ada di project ini (ada app lain seperti Travel Planner, Wedding Planner,
+  Daily Planner - terpisah, tidak dibahas di sini).
+- Setiap "app" punya daftar permission sendiri yang dicek pakai Laravel Gate,
+  contoh: money-management.dashboard, money-management.transactions, dst.
+  Role default: "admin" (akses semua fitur) dan "user" (akses terbatas -
+  lihat BAGIAN 2).
+- Semua nominal uang disimpan sebagai decimal(15,2).
+- Semua tabel utama modul ini memakai prefix "finance_" di database.
+
+
+BAGIAN 1 - ALUR BISNIS (BUSINESS FLOW)
+-----------------------------------------
+
+1. SETUP AWAL / MASTER DATA
+   Sebelum mulai mencatat transaksi, user perlu setup data master dulu:
+   a. Kategori (finance_categories) - kategori pemasukan (income) dan
+      pengeluaran (expense), misal "Gaji", "Makan", "Transport".
+   b. Provider/Lembaga Investasi (finance_investments) - katalog global
+      bank/e-wallet/exchange/broker, misal "BCA", "Ajaib", "Bitcoin". Ada
+      tipe: crypto, stock, other.
+   c. Portfolio/Akun (finance_portfolios) - akun/dompet nyata milik user,
+      dibuat dengan memilih salah satu provider di atas. Contoh:
+      "BCA - Rekening Utama", "Ajaib - Saham". Inilah representasi "dompet"
+      yang dipakai di seluruh aplikasi (bukan finance_investments).
+   d. Pengaturan (finance_settings) - misal payroll_start_day (tanggal mulai
+      siklus gajian, default tanggal 25). Ini dipakai supaya Dashboard,
+      Budget, dan Summary menghitung "bulan" berdasarkan siklus gajian user,
+      BUKAN tanggal 1-31 kalender biasa.
+
+2. PENCATATAN TRANSAKSI HARIAN (income/expense)
+   User mencatat transaksi masuk/keluar lewat halaman Transactions. Setiap
+   transaksi wajib punya kategori, dan opsional dikaitkan ke sebuah portfolio
+   (akun sumber/tujuan dana). Data ini masuk ke tabel finance_transactions.
+
+3. TRANSFER ANTAR AKUN (internal transfer)
+   Kalau user pindah dana antar dua akun/portfolio miliknya sendiri (misal
+   dari BCA ke Ajaib), sistem membuat DUA baris di finance_transactions
+   sekaligus: satu baris keluar (nilai negatif) di akun asal, satu baris
+   masuk (nilai positif) di akun tujuan, dengan type = "transfer". Kedua
+   baris ini saling terkait dan disinkronkan bareng saat diedit/dihapus.
+
+4. TRANSAKSI BERULANG (recurring transactions)
+   User bisa membuat template transaksi yang otomatis dibuatkan berkala
+   (harian/mingguan/bulanan/tahunan), misal tagihan bulanan. Sistem mengecek
+   template yang sudah jatuh tempo (next_date <= hari ini) setiap kali
+   halaman Recurring dibuka, lalu otomatis membuat transaksi asli di
+   finance_transactions dan menggeser next_date ke periode berikutnya.
+   Catatan: proses ini TIDAK dijalankan lewat scheduler/cron, hanya jalan
+   saat halaman dibuka.
+
+5. BUDGETING
+   User menetapkan batas anggaran per kategori pengeluaran per bulan
+   (finance_budgets), lalu dibandingkan dengan pengeluaran aktual pada
+   siklus gajian yang sama.
+
+6. INVESTASI (deposit/withdrawal/profit/loss di dalam portfolio)
+   Untuk akun yang ditandai sebagai akun investasi, pergerakan dana internal
+   (setor, tarik, untung, rugi) dicatat di finance_investment_transactions -
+   terpisah dari transaksi income/expense biasa.
+
+7. IPO (penawaran saham perdana)
+   Fitur khusus untuk mencatat proses ikut IPO saham:
+   a. User input order IPO (jumlah lot, harga) -> sistem otomatis mem-"blok"
+      dana di akun (transaksi withdrawal, status masih pending).
+   b. Saat hasil penjatahan (allotment) keluar, user konfirmasi jumlah lot
+      yang benar-benar didapat -> sistem otomatis: melepas blokir dana,
+      mencatat saham yang didapat sebagai kepemilikan (holding), dan
+      mengurangi kas sesuai dana yang benar-benar terpakai. Sisa dana yang
+      tidak terpakai otomatis kembali jadi saldo kas (refund).
+   c. Status order otomatis dihitung: pending / rejected (lot 0) /
+      partial / full.
+
+8. TRADING SAHAM (jual beli di pasar sekunder, setelah IPO)
+   Fitur Stock Tracking menampilkan posisi saham per emiten (jumlah lot,
+   nilai pasar, untung/rugi belum terealisasi) berdasarkan harga terkini
+   yang diinput manual oleh user (finance_emiten_prices). User bisa
+   eksekusi transaksi Beli/Jual (finance_emiten_trades):
+   - Beli: mengurangi kas, menambah kepemilikan saham.
+   - Jual: menghitung harga pokok penjualan (average cost) secara
+     proporsional, menambah kas, mencatat untung/rugi yang direalisasi.
+
+9. TRACKING CRYPTO (BTC Tracking)
+   Sama seperti Stock Tracking tapi versi sederhana - hanya menampilkan
+   ringkasan saldo per aset dari transaksi yang sudah ada, tanpa fitur
+   beli/jual langsung di halaman ini (transaksi tetap lewat Portfolio atau
+   Transfer).
+
+10. NET WORTH SNAPSHOT
+    User bisa menyimpan "potret" total kekayaan bersih pada tanggal
+    tertentu (finance_net_worth_snapshots), dipakai untuk grafik tren di
+    halaman Summary.
+
+11. LAPORAN & RINGKASAN (Dashboard & Summary)
+    - Dashboard: saldo per akun (dipisah kas vs investasi), total kekayaan
+      bersih, ringkasan income/expense siklus berjalan, kategori
+      terbesar, transaksi terbaru.
+    - Summary: tren net worth 12 titik, breakdown pengeluaran per kategori,
+      grafik tren income/expense bulanan, perbandingan bulan ini vs bulan
+      lalu, dan "Smart Advisor" - saran otomatis berbahasa Indonesia
+      (misal "pengeluaran naik X% dibanding bulan lalu").
+
+CATATAN PENTING - SALDO TIDAK PERNAH DISIMPAN LANGSUNG
+   Saldo sebuah akun/portfolio SELALU dihitung ulang secara real-time dari
+   seluruh transaksi terkait (bukan angka yang disimpan di kolom tersendiri).
+   Rumusnya kurang lebih:
+     saldo = (deposit + profit - withdrawal - loss) dari
+             finance_investment_transactions
+           + (income - expense) dari finance_transactions
+           + (transfer masuk/keluar yang sudah bertanda +/-)
+   Ini keputusan desain yang disengaja supaya data selalu konsisten.
+
+
+BAGIAN 2 - HAK AKSES (SIAPA BOLEH APA)
+------------------------------------------
+Akses diatur per-fitur lewat permission "app" money-management:
+  - dashboard, transactions, budgets, summary, portfolio, settings, dst.
+
+Role bawaan (dari seeder):
+  - Administrator: semua permission (semua fitur di atas).
+  - User biasa   : hanya dashboard, transactions, summary (budget,
+                    portfolio, dan settings default-nya khusus admin).
+
+CATATAN GAP (perlu diperhatikan kalau mau dirapikan):
+  - Sub-menu Portfolio, IPO, Stock Tracking, BTC Tracking, dan Master Data
+    saat ini BELUM punya permission/gate khusus sendiri - hanya mewarisi
+    gate umum "money-management.dashboard". Jadi siapa pun yang punya akses
+    dashboard otomatis bisa buka halaman-halaman ini juga.
+  - Menu "Wedding Planner" ikut nempel di URL prefix /money-management/...
+    walau sebenarnya fitur terpisah (bukan bagian dari Money Management).
+
+
+BAGIAN 3 - DAFTAR TABEL DATABASE
+-------------------------------------
+Semua tabel di bawah ini "milik" satu user (ada kolom user_id) kecuali
+disebutkan lain.
+
+1. finance_categories
+   Kategori pemasukan/pengeluaran.
+   Kolom penting : id, user_id, name, type (income/expense), description
+   Relasi        : dipakai oleh finance_transactions, finance_budgets,
+                   finance_recurring_transactions
+
+2. finance_investments
+   Katalog GLOBAL provider/lembaga keuangan (bank, e-wallet, exchange,
+   broker) - bukan akun milik user, hanya referensi/template.
+   Kolom penting : id, name, code, type (crypto/stock/other), description
+   Relasi        : punya banyak finance_portfolios
+
+3. finance_portfolios   <-- ini adalah "akun/dompet" yang sesungguhnya
+   Akun keuangan milik user, dibuat berdasarkan satu finance_investments.
+   Kolom penting : id, user_id, finance_investment_id, account_name,
+                   account_number, description,
+                   account_investment (boolean - apakah dianggap akun
+                   investasi atau kas biasa)
+   Relasi        : milik User & FinanceInvestment (provider);
+                   punya banyak finance_investment_transactions dan
+                   finance_transactions
+   Catatan       : saldo (balance) dihitung otomatis, tidak disimpan
+                   sebagai kolom (lihat penjelasan di Bagian 1).
+
+4. finance_transactions   <-- buku besar umum (income/expense/transfer)
+   Kolom penting : id, user_id, date, type (income/expense/transfer),
+                   finance_category_id, finance_investment_id (akun asal,
+                   sebetulnya foreign key ke finance_portfolios),
+                   to_finance_investment_id (akun tujuan, khusus transfer),
+                   asset, lot (opsional, untuk transfer yang menyentuh
+                   aset saham/crypto), amount, description
+   Relasi        : milik User, FinanceCategory, dan dua FinancePortfolio
+                   (akun asal & akun tujuan)
+
+5. finance_investment_transactions   <-- buku besar internal per akun
+   Pergerakan dana di dalam sebuah portfolio investasi.
+   Kolom penting : id, user_id, finance_investment_id (fk ke
+                   finance_portfolios), asset, lot, date,
+                   type (deposit/withdrawal/profit/loss), amount,
+                   description
+   Relasi        : milik User & FinancePortfolio
+   Catatan       : ini juga jadi "backbone" ledger untuk fitur IPO dan
+                   Stock Trading (lihat tabel 10 & 11 di bawah)
+
+6. finance_budgets
+   Anggaran bulanan per kategori.
+   Kolom penting : id, user_id, finance_category_id, amount, month, year
+                   (unique per user+kategori+bulan+tahun)
+   Relasi        : milik User & FinanceCategory
+
+7. finance_recurring_transactions
+   Template transaksi berulang.
+   Kolom penting : id, user_id, name, type (income/expense),
+                   finance_category_id, finance_investment_id (akun,
+                   opsional), amount, frequency (daily/weekly/monthly/
+                   yearly), start_date, next_date, description, is_active
+   Relasi        : milik User, FinanceCategory (opsional), FinancePortfolio
+                   (opsional)
+
+8. finance_net_worth_snapshots
+   Potret total kekayaan bersih pada satu tanggal.
+   Kolom penting : id, user_id, date, amount (unique per user+tanggal)
+   Relasi        : milik User
+
+9. finance_settings
+   Pengaturan bebas key-value per user, misal payroll_start_day.
+   Kolom penting : id, user_id, key, value
+   Relasi        : milik User
+
+10. finance_ipo_orders
+    Riwayat order IPO dari order sampai hasil penjatahan.
+    Kolom penting : id, user_id, finance_investment_id (fk ke
+                    finance_portfolios, harus akun bertipe "stock"),
+                    asset (kode emiten), order_date, price_per_share,
+                    lot_ordered, lot_allotted (null = masih pending),
+                    allotment_date, description,
+                    order_transaction_id / release_transaction_id /
+                    holding_transaction_id / offset_transaction_id
+                    (masing-masing fk opsional ke
+                    finance_investment_transactions - baris ledger yang
+                    otomatis dibuat sistem)
+    Relasi        : milik FinancePortfolio; status (pending/rejected/
+                    partial/full), order_amount, allotted_amount,
+                    refund_amount dihitung otomatis (tidak disimpan)
+
+11. finance_emiten_prices
+    Harga pasar terkini per aset/emiten (diinput manual oleh user).
+    Kolom penting : id, user_id, asset, current_price
+                    (unique per user+asset)
+
+12. finance_emiten_trades
+    Log transaksi jual-beli saham di pasar sekunder.
+    Kolom penting : id, user_id, finance_investment_id (fk ke
+                    finance_portfolios), asset, type (buy/sell),
+                    trade_date, price_per_share, lot, description,
+                    holding_transaction_id / cash_transaction_id /
+                    pnl_transaction_id (fk opsional ke
+                    finance_investment_transactions)
+    Relasi        : milik FinancePortfolio; amount dihitung otomatis
+                    (lot x 100 x price_per_share)
+
+
+BAGIAN 4 - RINGKASAN RELASI ANTAR TABEL
+--------------------------------------------
+User (1) -----< finance_categories
+User (1) -----< finance_portfolios >----- (1) finance_investments
+User (1) -----< finance_transactions >-----(2x, asal & tujuan) finance_portfolios
+User (1) -----< finance_investment_transactions >----- (1) finance_portfolios
+User (1) -----< finance_budgets >----- (1) finance_categories
+User (1) -----< finance_recurring_transactions
+User (1) -----< finance_net_worth_snapshots
+User (1) -----< finance_settings
+finance_ipo_orders -----> finance_portfolios, dan -----> beberapa baris
+   finance_investment_transactions (dibuat otomatis oleh sistem)
+finance_emiten_trades -----> finance_portfolios, dan -----> beberapa baris
+   finance_investment_transactions (dibuat otomatis oleh sistem)
+finance_emiten_prices -> berdiri sendiri (tidak ada foreign key), hanya
+   dicocokkan lewat kolom "asset" (nama/kode) saat dibutuhkan.
+
+
+BAGIAN 5 - CATATAN UNTUK RENCANA APLIKASI MOBILE
+------------------------------------------------------
+- Aplikasi mobile untuk modul ini BELUM dibangun. Baru ada rencana teknis
+  di file docs/mobile-offline-sync-plan.md (statusnya masih draft).
+- Rencananya: mobile app jalan offline-first (data utama di HP), lalu
+  sinkron dua arah ke backend Laravel ini lewat API baru
+  (/api/v1/sync/{module}/pull dan /push). Login pakai Laravel Sanctum
+  (paketnya sudah terinstall, tapi endpoint API-nya sendiri belum dibuat,
+  saat ini routes/api.php masih kosong/default).
+- Skema database saat ini BELUM siap untuk sinkron mobile - masih pakai
+  auto-increment id (bukan uuid), hard delete (bukan soft delete), dan
+  belum ada kolom penanda sinkronisasi. Ini perlu migration tambahan
+  sebelum API mobile dibangun (detail lengkap ada di
+  mobile-offline-sync-plan.md).
+- Urutan prioritas tabel yang direncanakan untuk mobile:
+  Fase 1 (paling sering dipakai sehari-hari - catat transaksi, cek saldo,
+  cek budget): finance_categories, finance_transactions, finance_budgets,
+  finance_portfolios, finance_investment_transactions, finance_settings.
+  Fase 2 (jarang dipakai dari mobile, relasinya lebih rumit):
+  finance_ipo_orders, finance_emiten_trades, finance_emiten_prices,
+  finance_net_worth_snapshots.
+- Saldo tetap akan dihitung dari transaksi (bukan disinkronkan sebagai
+  angka langsung) - prinsip ini harus dipertahankan juga di sisi mobile.
+
+
+BAGIAN 6 - CATATAN LAIN YANG PERLU DIKETAHUI
+-------------------------------------------------
+- Modul Travel Planner (travel_trips, travel_itineraries, travel_budgets,
+  travel_expenses) TERLIHAT mirip (sama-sama soal uang/anggaran) tapi
+  SECARA DATABASE TERPISAH TOTAL dari Money Management - tidak ada
+  relasi/foreign key ke tabel finance_*.
+- Ada juga fitur pencatatan pengeluaran lama/legacy (tabel
+  master_category_expenses dan rincian_pengeluaran_rifqi) yang dibuat
+  sebelum modul Money Management ini ada. Ini SUDAH TIDAK terhubung /
+  tidak dipakai oleh modul Money Management, dianggap legacy.
+- Riwayat perubahan modul ini (misal kapan fitur Portfolio, IPO, Stock
+  Tracking ditambahkan) bisa dilihat lengkap di file CHANGELOG.md di root
+  project, terutama sekitar versi v1.9.0 - v1.17.0.

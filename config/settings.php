@@ -269,5 +269,13 @@ return [
                 'assets/plugins/custom/delay/delay.bundle.js',
             ],
         ],
+        'apex-chart' => [
+            'css' => [
+                'assets/plugins/global/plugins.bundle.css'
+            ],
+            'js' => [
+                'assets/plugins/global/plugins.bundle.js'
+            ],
+        ],
     ],
 ];

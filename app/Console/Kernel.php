@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Generate recurring daily activities every day at midnight
+        $schedule->command('daily-planner:generate-recurring')->dailyAt('00:00');
     }
 
     /**

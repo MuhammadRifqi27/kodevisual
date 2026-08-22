@@ -7,8 +7,132 @@ use Diglactic\Breadcrumbs\Generator as BreadcrumbTrail;
 Breadcrumbs::for('dashboard', function (BreadcrumbTrail $trail) {
     $trail->push('Dashboard', route('example.dashboard.default'));
 });
+// Detail Expenses Rifqi
 Breadcrumbs::for('detail-expenses-rifqi', function (BreadcrumbTrail $trail) {
     $trail->push('Detail Expenses Rifqi', route('financial_summary.detail.expenses'));
+});
+
+
+Breadcrumbs::for('daily-planner', function (BreadcrumbTrail $trail) {
+    $trail->push('Daily Planner', '#');
+});
+
+// Daily Planner > Dashboard
+Breadcrumbs::for('daily-planner.dashboard', function (BreadcrumbTrail $trail) {
+    $trail->parent('daily-planner');
+    $trail->push('Dashboard', route('daily-planner.dashboard'));
+});
+
+// Daily Planner > Activity
+Breadcrumbs::for('daily-planner.activity', function (BreadcrumbTrail $trail) {
+    $trail->parent('daily-planner');
+    $trail->push('Activity', route('daily-planner.activity'));
+});
+
+// Daily Planner > Recurring Activity
+Breadcrumbs::for('daily-planner.recurring-activity', function (BreadcrumbTrail $trail) {
+    $trail->parent('daily-planner');
+    $trail->push('Recurring Activity', route('daily-planner.recurring-activity'));
+});
+
+// Money Management
+Breadcrumbs::for('money-management', function (BreadcrumbTrail $trail) {
+    $trail->push('Money Management', '#');
+});
+
+// Money Management > Transactions
+Breadcrumbs::for('money-management.transactions', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Transactions', route('money-management.transactions.index'));
+});
+
+// Money Management > Transfers
+Breadcrumbs::for('money-management.transfers', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Transfers', route('money-management.transfers.index'));
+});
+
+// Money Management > Portfolio
+Breadcrumbs::for('money-management.portfolio', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Portfolio & Savings', route('money-management.portfolio.index'));
+});
+
+// Money Management > Summary
+Breadcrumbs::for('money-management.summary', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Summary', route('money-management.summary.index'));
+});
+
+// Money Management > Budgets
+Breadcrumbs::for('money-management.budgets', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Monthly Budgets', route('money-management.budgets.index'));
+});
+
+// Money Management > Recurring
+Breadcrumbs::for('money-management.recurring', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Recurring Transactions', route('money-management.recurring.index'));
+});
+
+// Money Management > Portfolio > Details
+Breadcrumbs::for('money-management.portfolio.show', function (BreadcrumbTrail $trail, $id) {
+    $trail->parent('money-management.portfolio');
+    $trail->push('Details', route('money-management.portfolio.show', $id));
+});
+
+// Money Management > Master Data
+Breadcrumbs::for('money-management.master-data', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Master Data', '#');
+});
+
+// Money Management > Master Data > Expenses
+Breadcrumbs::for('money-management.master-data.expenses', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management.master-data');
+    $trail->push('Category Expenses', route('money-management.master-data.expenses.index'));
+});
+
+// Money Management > Master Data > Income
+Breadcrumbs::for('money-management.master-data.income', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management.master-data');
+    $trail->push('Category Income', route('money-management.master-data.income.index'));
+});
+
+// Money Management > Master Data > Investments
+Breadcrumbs::for('money-management.master-data.investments', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management.master-data');
+    $trail->push('Investments', route('money-management.master-data.investments.index'));
+});
+
+Breadcrumbs::for('money-management.wedding-planner', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Wedding Planner', route('money-management.wedding-planner.index'));
+});
+
+// Money Management > Bitcoin Tracking
+Breadcrumbs::for('money-management.btc-tracking', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Bitcoin Tracking', route('money-management.btc-tracking.index'));
+});
+
+// Money Management > Stock Tracking
+Breadcrumbs::for('money-management.stock-tracking', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('Stocks Tracking', route('money-management.stock-tracking.index'));
+});
+
+// Money Management > IPO Orders
+Breadcrumbs::for('money-management.ipo', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management');
+    $trail->push('IPO Orders', route('money-management.ipo.index'));
+});
+
+// Money Management > Master Data > Settings
+Breadcrumbs::for('money-management.master-data.settings', function (BreadcrumbTrail $trail) {
+    $trail->parent('money-management.master-data');
+    $trail->push('Finance Settings', route('money-management.master-data.settings.index'));
 });
 // Dashboard > Default
 Breadcrumbs::for('dashboard.default', function (BreadcrumbTrail $trail) {
@@ -143,8 +267,8 @@ Breadcrumbs::for('account.overview', function (BreadcrumbTrail $trail) {
 });
 // Account > Settings
 Breadcrumbs::for('account.settings', function (BreadcrumbTrail $trail) {
-    $trail->parent('account');
-    $trail->push('Settings', route('example.account.settings'));
+    $trail->push('Account', '#');
+    $trail->push('Settings', route('account.settings'));
 });
 // Account > Security
 Breadcrumbs::for('account.security', function (BreadcrumbTrail $trail) {

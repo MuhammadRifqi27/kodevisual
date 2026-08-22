@@ -1,0 +1,272 @@
+PANDUAN DEPLOY LARAVEL (kode_visual) KE HOSTING WEBNESIA
+=========================================================
+Untuk pemula yang baru pertama kali langganan hosting. Ikuti urutan dari atas ke bawah.
+Catatan: nama menu di cPanel bisa sedikit beda tergantung versi cPanel Webnesia, tapi konsepnya sama.
+
+
+BAGIAN 0 - SEBELUM MULAI
+-------------------------
+Yang perlu disiapkan:
+- Sudah beli paket hosting Webnesia (rekomendasi: Standard Plan, cukup untuk aplikasi personal)
+- Sudah punya/beli domain (kalau beli domain di Webnesia juga, biasanya otomatis kesambung.
+  Kalau domain dari provider lain, nanti perlu ubah Nameserver domain ke Nameserver Webnesia
+  - Webnesia akan kasih tahu nameserver-nya lewat email setelah order)
+- Software yang perlu diinstall di LAPTOP kamu (bukan di server):
+  - FileZilla atau WinSCP (untuk transfer file via FTP/SFTP) - opsional kalau mau upload manual
+  - Git (kalau mau deploy via git clone, lebih direkomendasikan)
+  - Sudah punya project ini di GitHub/GitLab (private repo) - supaya bisa di-clone dari server
+
+
+BAGIAN 1 - AKTIVASI & LOGIN CPANEL
+------------------------------------
+1. Cek email dari Webnesia setelah pembayaran, isinya:
+   - Link login cPanel (biasanya https://namadomainkamu.com:2083 atau IP server)
+   - Username & password cPanel
+   - Info nameserver (kalau perlu ganti nameserver domain)
+2. Login ke cPanel pakai info tersebut.
+3. Kalau domain beli di tempat lain, masuk ke panel domain (misal Niagahoster/domainesia/dll),
+   cari menu "Nameserver", ganti ke nameserver yang dikasih Webnesia. Proses propagasi bisa
+   1-24 jam.
+
+
+BAGIAN 2 - SETUP PHP
+----------------------
+Project ini butuh PHP versi 8.1 ke atas.
+
+1. Di cPanel, cari menu "MultiPHP Manager".
+2. Pilih domain kamu dari daftar.
+3. Ubah versi PHP ke 8.1 (atau 8.2/8.3 kalau tersedia, yang penting minimal 8.1).
+4. Klik Apply/Save.
+5. Cari menu "MultiPHP INI Editor" (masih di cPanel), pilih domain kamu, lalu cek/aktifkan
+   ekstensi PHP berikut kalau belum aktif (biasanya sudah default aktif semua, tinggal cek):
+   - bcmath, ctype, curl, dom, fileinfo, json, mbstring, openssl, pdo, pdo_mysql,
+     tokenizer, xml, zip, gd
+   Kalau ada yang belum aktif, centang lalu Save.
+
+
+BAGIAN 3 - AKTIFKAN SSH ACCESS
+---------------------------------
+SSH dibutuhkan supaya kamu bisa jalankan perintah composer & artisan langsung di server
+(tanpa ini, deploy Laravel akan sangat merepotkan).
+
+1. Di cPanel cari menu "SSH Access" (kadang namanya "Terminal" atau "SSH Access Manager").
+2. Kalau belum aktif untuk akun kamu, hubungi support Webnesia (live chat/tiket) minta
+   diaktifkan SSH access untuk akun hosting kamu. Beberapa paket shared hosting SSH-nya
+   perlu di-enable manual oleh support.
+3. Setelah aktif, kamu akan dapat cara connect, biasanya:
+     ssh username@namadomainkamu.com -p 21098
+   (port bisa beda, cek info dari cPanel > SSH Access)
+4. Coba connect dari laptop pakai PowerShell/Terminal:
+     ssh username@namadomainkamu.com -p [port]
+   Masukkan password cPanel kamu saat diminta.
+
+
+BAGIAN 4 - CEK/INSTALL COMPOSER
+----------------------------------
+1. Setelah berhasil SSH masuk ke server, cek dulu apakah composer sudah ada:
+     composer -V
+2. Kalau sudah muncul versi composer, lanjut ke Bagian 5.
+3. Kalau belum ada / "command not found", install manual:
+     curl -sS https://getcomposer.org/installer -o composer-setup.php
+     php composer-setup.php --install-dir=$HOME/bin --filename=composer
+     export PATH="$HOME/bin:$PATH"
+     echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+     composer -V
+4. Kalau cPanel Webnesia support "Setup Node.js App" atau "Cloud Linux Selector", biasanya
+   composer sudah otomatis tersedia lewat menu itu - cek dulu sebelum install manual.
+
+
+BAGIAN 5 - BUAT DATABASE MYSQL
+---------------------------------
+1. Di cPanel cari menu "MySQL Database Wizard".
+2. Step 1: buat nama database, misal: namauser_kodevisual
+   (cPanel otomatis kasih prefix username di depan nama database)
+3. Step 2: buat user database baru, misal: namauser_dbuser, dan buat password KUAT
+   (simpan password ini baik-baik, dipakai nanti di file .env)
+4. Step 3: kasih semua privilege ("ALL PRIVILEGES") ke user tersebut untuk database itu.
+5. Catat 3 hal ini untuk dipakai nanti:
+   - Nama database lengkap (dengan prefix)
+   - Username database lengkap (dengan prefix)
+   - Password database
+   - Host biasanya "localhost"
+
+
+BAGIAN 6 - UPLOAD PROJECT KE SERVER
+--------------------------------------
+Ada 2 cara, pilih salah satu:
+
+CARA A - Pakai Git (lebih direkomendasikan, lebih gampang untuk update selanjutnya)
+1. Pastikan project sudah di-push ke GitHub/GitLab (private repo).
+2. Di server (lewat SSH), masuk ke home directory:
+     cd ~
+3. Clone project (kalau private repo, siapkan Personal Access Token dari GitHub):
+     git clone https://github.com/username/nama-repo.git kode_visual_app
+4. Nanti struktur foldernya ada di ~/kode_visual_app
+
+CARA B - Upload manual pakai FileZilla/WinSCP
+1. Zip semua file project di laptop (kecuali folder vendor/ dan node_modules/, tidak perlu ikut).
+2. Buka FileZilla, connect pakai SFTP:
+     Host: namadomainkamu.com
+     Username: (username cPanel)
+     Password: (password cPanel)
+     Port: 21098 (sama seperti SSH, atau cek di cPanel > SSH Access)
+3. Upload file zip ke folder home (~), lalu extract lewat cPanel File Manager
+   (klik kanan file zip > Extract), atau lewat SSH: unzip nama-file.zip
+
+
+BAGIAN 7 - ATUR DOCUMENT ROOT (BAGIAN PALING SERING BIKIN BINGUNG)
+---------------------------------------------------------------------
+Laravel punya folder "public/" yang HARUS jadi root domain (bukan seluruh folder project).
+Kalau salah setting ini, orang lain bisa akses file .env kamu langsung dari browser - bahaya.
+
+Pilihan termudah untuk shared hosting cPanel:
+
+1. Di cPanel, cari menu "Domains" (atau "Addon Domains" kalau domain ini domain tambahan).
+2. Cari kolom "Document Root" untuk domain kamu.
+3. Ubah Document Root menjadi: kode_visual_app/public
+   (sesuaikan dengan nama folder project yang kamu clone/upload di Bagian 6)
+4. Save.
+
+Kalau menu "Document Root" tidak bisa diubah di paket hosting kamu (beberapa shared hosting
+mengunci ini ke public_html), pakai cara alternatif:
+1. Pindahkan SEMUA isi folder "public/" project ke dalam public_html
+2. Edit file public_html/index.php, cari baris:
+     require __DIR__.'/../vendor/autoload.php';
+     $app = require_once __DIR__.'/../bootstrap/app.php';
+   Ubah path-nya jadi menunjuk ke lokasi folder project asli, contoh:
+     require __DIR__.'/../kode_visual_app/vendor/autoload.php';
+     $app = require_once __DIR__.'/../kode_visual_app/bootstrap/app.php';
+(Cara pertama - ubah Document Root - jauh lebih bersih, coba itu dulu, hubungi support
+Webnesia kalau tidak ketemu menunya, biasanya mereka bisa bantu set manual.)
+
+
+BAGIAN 8 - SETUP FILE .env
+-----------------------------
+1. Lewat SSH, masuk ke folder project:
+     cd ~/kode_visual_app
+2. Copy file contoh env:
+     cp .env.example .env
+3. Edit file .env (bisa pakai nano lewat SSH, atau edit lewat cPanel File Manager):
+     nano .env
+4. Isi/ubah bagian berikut:
+     APP_ENV=production
+     APP_DEBUG=false
+     APP_URL=https://namadomainkamu.com
+
+     DB_CONNECTION=mysql
+     DB_HOST=localhost
+     DB_PORT=3306
+     DB_DATABASE=namauser_kodevisual        (dari Bagian 5)
+     DB_USERNAME=namauser_dbuser            (dari Bagian 5)
+     DB_PASSWORD=password_yang_kamu_buat    (dari Bagian 5)
+5. Simpan (di nano: Ctrl+O lalu Enter, keluar dengan Ctrl+X).
+
+
+BAGIAN 9 - INSTALL DEPENDENCY & SETUP LARAVEL
+-------------------------------------------------
+Masih di SSH, folder project (~/kode_visual_app):
+
+1. Install dependency PHP (mode production, tanpa paket development):
+     composer install --optimize-autoloader --no-dev
+2. Generate APP_KEY (kunci enkripsi Laravel):
+     php artisan key:generate
+3. Jalankan migration untuk membuat semua tabel di database:
+     php artisan migrate --force
+4. Buat symbolic link untuk folder storage (supaya file upload/gambar bisa diakses publik):
+     php artisan storage:link
+5. Cache config untuk performa lebih baik di production:
+     php artisan config:cache
+     php artisan route:cache
+     php artisan view:cache
+
+
+BAGIAN 10 - BUILD & UPLOAD ASSET FRONTEND (CSS/JS)
+------------------------------------------------------
+Shared hosting kadang tidak stabil untuk build asset langsung di server, jadi lebih aman
+build di laptop dulu:
+
+1. Di LAPTOP kamu (bukan server), di folder project:
+     npm install
+     npm run build
+2. Ini akan menghasilkan folder "public/build" berisi file CSS/JS hasil compile.
+3. Upload folder "public/build" tersebut ke server, ke lokasi:
+     ~/kode_visual_app/public/build
+   (pakai FileZilla/WinSCP, atau kalau pakai Git bisa juga di-commit & push lalu git pull
+   di server - asal folder build tidak di-ignore oleh .gitignore)
+
+
+BAGIAN 11 - SET PERMISSION FOLDER
+------------------------------------
+Laravel butuh folder storage dan bootstrap/cache bisa ditulis oleh aplikasi:
+
+     chmod -R 775 storage bootstrap/cache
+
+(Kalau masih ada error permission setelah ini, coba chmod -R 755 dulu, atau tanya support
+Webnesia cara set ownership yang benar untuk shared hosting mereka.)
+
+
+BAGIAN 12 - AKTIFKAN SSL (HTTPS)
+------------------------------------
+1. Di cPanel cari menu "SSL/TLS Status" atau "AutoSSL" atau "Let's Encrypt SSL".
+2. Pilih domain kamu, klik "Run AutoSSL" atau "Issue".
+3. Tunggu beberapa menit sampai sertifikat aktif (biasanya otomatis, gratis, dari Let's Encrypt).
+4. Setelah aktif, pastikan APP_URL di file .env pakai https:// (sudah dilakukan di Bagian 8).
+5. Test buka https://namadomainkamu.com - pastikan ada ikon gembok di browser.
+
+
+BAGIAN 13 - SETUP CRON JOB (UNTUK SCHEDULED TASK LARAVEL)
+---------------------------------------------------------------
+Project ini punya fitur recurring activity yang butuh scheduler Laravel jalan tiap menit.
+
+1. Di cPanel cari menu "Cron Jobs".
+2. Tambah cron job baru:
+   - Minute: setiap menit -> pilih "*" atau centang "Every Minute"
+   - Command:
+       cd /home/namauser/kode_visual_app && php artisan schedule:run >> /dev/null 2>&1
+     (ganti "/home/namauser/kode_visual_app" dengan path lengkap folder project kamu -
+     bisa dicek lewat SSH dengan command "pwd" saat berada di folder project)
+3. Save.
+
+
+BAGIAN 14 - TES AKHIR
+------------------------
+1. Buka https://namadomainkamu.com di browser, pastikan halaman login muncul normal.
+2. Coba login, cek beberapa halaman (dashboard, travel planner, money management).
+3. Cek error log kalau ada masalah: cPanel > "Errors" atau lewat SSH:
+     tail -f storage/logs/laravel.log
+4. Kalau semua normal, hosting siap dipakai sebagai backend untuk mobile app nanti.
+
+
+BAGIAN 15 - CATATAN UNTUK NANTI (API MOBILE)
+-------------------------------------------------
+Setelah hosting jalan normal, langkah lanjutan untuk API mobile sync (lihat juga file
+docs/mobile-offline-sync-plan.md untuk detail arsitektur):
+- Karena domain sudah publik & sudah ada SSL, mobile app bisa langsung connect ke
+  https://namadomainkamu.com/api/v1/... dari mana saja (tidak perlu tunnel/hotspot lagi).
+- Kalau update kode project nanti (fitur baru, bug fix), cara paling gampang:
+    ssh ke server -> cd ke folder project -> git pull -> composer install (kalau ada
+    dependency baru) -> php artisan migrate --force (kalau ada migration baru) ->
+    php artisan config:cache
+- Simpan file .env server terpisah dari git (jangan pernah di-commit ke repo).
+
+
+CHECKLIST CEPAT (centang manual saat sudah selesai)
+-------------------------------------------------------
+[ ] Hosting & domain aktif, nameserver sudah settle
+[ ] PHP versi 8.1+ di-set lewat MultiPHP Manager
+[ ] Ekstensi PHP yang dibutuhkan sudah aktif
+[ ] SSH access aktif dan bisa connect
+[ ] Composer terpasang di server
+[ ] Database MySQL + user sudah dibuat, kredensial dicatat
+[ ] Project sudah ada di server (git clone atau upload manual)
+[ ] Document root sudah diarahkan ke folder public/
+[ ] File .env sudah diisi lengkap dan benar
+[ ] composer install --no-dev sudah jalan tanpa error
+[ ] php artisan key:generate sudah dijalankan
+[ ] php artisan migrate --force sudah jalan, tabel sudah kebentuk
+[ ] php artisan storage:link sudah dijalankan
+[ ] Asset frontend (public/build) sudah ter-upload
+[ ] Permission storage & bootstrap/cache sudah benar
+[ ] SSL aktif, domain bisa diakses lewat https://
+[ ] Cron job schedule:run sudah didaftarkan
+[ ] Sudah login & test beberapa halaman, tidak ada error
