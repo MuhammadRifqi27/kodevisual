@@ -1,0 +1,396 @@
+PANDUAN DEPLOY LARAVEL (kode_visual) KE HOSTING HOSTINGER
+===========================================================
+Untuk pemula yang baru pertama kali pakai hPanel (control panel Hostinger, BEDA dari cPanel).
+Ikuti urutan dari atas ke bawah. Domain & hosting sudah dibeli di Hostinger.co.id.
+
+
+BAGIAN 0 - SEBELUM MULAI
+-------------------------
+Yang perlu disiapkan:
+- Domain & paket hosting Hostinger sudah aktif (pastikan minimal paket Premium/Business -
+  paket paling murah/Single kadang TIDAK menyediakan SSH Access, yang wajib untuk Laravel).
+- Software yang perlu diinstall di LAPTOP kamu (bukan di server):
+  - FileZilla atau WinSCP (opsional, buat upload manual/cek file)
+  - Git
+  - Project ini sudah ada di GitHub/GitLab (private repo) - supaya bisa di-clone dari server
+- Login ke hPanel: https://hpanel.hostinger.com (pakai akun Hostinger kamu, bukan URL
+  domain:2083 seperti cPanel).
+
+
+BAGIAN 1 - CEK DOMAIN SUDAH TERHUBUNG
+----------------------------------------
+1. Login ke hPanel.
+2. Di dashboard, pilih website/domain kamu (kalau domain & hosting dibeli dalam 1 pembelian/
+   1 akun yang sama, biasanya OTOMATIS sudah terhubung, tidak perlu ubah nameserver).
+3. Kalau domainnya dibeli terpisah (misal domain dari provider lain), masuk ke menu
+   "Domains", cek status DNS/nameserver, arahkan ke nameserver Hostinger yang diberikan
+   di email konfirmasi. Propagasi bisa 1-24 jam.
+4. Pastikan status domain di dashboard hPanel menunjukkan "Active"/terhubung ke hosting.
+
+
+BAGIAN 2 - SETUP PHP
+----------------------
+Project ini butuh PHP versi 8.1 ke atas.
+
+1. Di hPanel, pilih website kamu, masuk ke menu "Advanced" > "PHP Configuration".
+2. Pilih versi PHP: 8.1, 8.2, atau 8.3 (pilih yang paling baru yang tersedia & didukung
+   Laravel project ini).
+3. Klik tab "PHP Extensions" (masih di halaman yang sama), aktifkan ekstensi berikut kalau
+   belum aktif (biasanya sudah default aktif semua, tinggal cek):
+   - bcmath, ctype, curl, dom, fileinfo, json, mbstring, openssl, pdo, pdo_mysql,
+     tokenizer, xml, zip, gd
+4. Save.
+
+
+BAGIAN 3 - AKTIFKAN SSH ACCESS
+---------------------------------
+SSH dibutuhkan supaya kamu bisa jalankan perintah composer & artisan langsung di server.
+
+1. Di hPanel, masuk ke menu "Advanced" > "SSH Access".
+2. Kalau statusnya "Disabled", klik untuk enable / toggle jadi aktif.
+3. Set/catat password SSH kamu (bisa beda dari password hPanel akun).
+4. Catat info koneksi yang ditampilkan, biasanya formatnya:
+     ssh username@kodevisual.com -p 65002
+   (host & port persis dicontohkan di halaman SSH Access itu sendiri - port SSH Hostinger
+   BUKAN 22, biasanya 65002 atau sejenisnya, jadi jangan disamakan asal).
+5. Kalau menu SSH Access tidak muncul sama sekali di paket kamu, berarti plan hosting kamu
+   tidak mendukung SSH - hubungi live chat Hostinger untuk cek opsi upgrade plan (Premium/
+   Business ke atas biasanya sudah termasuk SSH).
+6. Coba connect dari laptop pakai PowerShell/Terminal:
+     ssh username@kodevisual.com -p [port]
+   Masukkan password SSH saat diminta.
+
+CARA CONNECT PAKAI TERMIUS (alternatif GUI, kalau tidak mau pakai command line)
+1. Buka aplikasi Termius, klik "New Host" (ikon "+" di kiri atas / menu Hosts).
+2. Isi field berikut (semua nilainya sama seperti yang dicatat di langkah 3-4 di atas):
+     Label:    kode_visual (bebas, buat nama biar gampang dikenali)
+     Address:  kodevisual.com   (atau IP server, ada juga di halaman SSH Access)
+     Port:     [port SSH dari hPanel, contoh 65002 - JANGAN dibiarkan default 22]
+     Username: [username SSH dari hPanel]
+3. Di bagian "Password", masukkan password SSH yang sudah kamu set di langkah 3. Simpan.
+4. Klik host yang baru dibuat tadi untuk connect. Kalau muncul peringatan fingerprint host
+   baru, pilih "Continue"/"Trust" (wajar untuk koneksi pertama kali).
+5. Kalau berhasil, akan muncul terminal di dalam Termius - lanjut ke Bagian 4 dst seperti
+   biasa (perintah composer2, php artisan, dll dijalankan di terminal Termius ini).
+6. (Opsional, lebih aman & tidak perlu ketik password tiap connect) Pakai SSH Key:
+   - Di Termius: Keychain > "+" > "Generate Key" (bikin key baru, misal tipe ED25519).
+   - Klik kanan key yang baru dibuat > "Copy Public Key".
+   - Di hPanel: Advanced > SSH Access > tab "SSH Keys" > "Add SSH Key", paste public key
+     tadi, Save.
+   - Balik ke host di Termius > Edit > bagian "Keys", pilih key yang sama, lalu Save.
+     Connect ulang - seharusnya tidak diminta password lagi.
+
+
+BAGIAN 4 - CEK/INSTALL COMPOSER
+----------------------------------
+CATATAN KHUSUS HOSTINGER: perintah `composer` di SSH Hostinger sering masih mengarah ke
+Composer versi 1 (lama). WAJIB pakai `composer2` supaya sesuai dependency Laravel modern.
+
+1. Setelah berhasil SSH masuk ke server, cek versi:
+     composer2 -V
+2. Kalau `composer2` sudah muncul versinya (Composer 2.x), lanjut ke Bagian 5, dan pakai
+   `composer2` untuk SEMUA perintah composer di panduan ini (bukan `composer` biasa).
+3. Kalau `composer2` tidak ditemukan, cek dulu apakah `composer` biasa ternyata sudah versi 2:
+     composer -V
+   Kalau versi 2.x, pakai `composer` saja seperti biasa.
+4. Kalau keduanya tidak ada / bermasalah, install manual:
+     curl -sS https://getcomposer.org/installer -o composer-setup.php
+     php composer-setup.php --install-dir=$HOME/bin --filename=composer
+     export PATH="$HOME/bin:$PATH"
+     echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+     composer -V
+
+
+BAGIAN 5 - BUAT DATABASE MYSQL
+---------------------------------
+1. Di hPanel, masuk ke menu "Databases" > "MySQL Databases".
+2. Isi "Database name" - Hostinger otomatis kasih prefix (misal: u123456789_kodevisual).
+3. Isi "Database username" & "Database password" - password wajib minimal 8 karakter,
+   kombinasi huruf besar, huruf kecil, dan angka.
+4. Klik "Create". User otomatis dapat full privilege ke database itu.
+5. Catat 3 hal ini untuk dipakai nanti:
+   - Nama database lengkap (dengan prefix u123456789_...)
+   - Username database lengkap (dengan prefix)
+   - Password database
+   - Host biasanya "localhost"
+
+CATATAN - IMPORT DATABASE YANG SUDAH ADA (KALAU PUNYA FILE .sql DARI LOKAL)
+Kalau kamu sudah punya database (misal hasil export dari Laragon/phpMyAdmin lokal, file
+"namafile.sql"), jangan mulai dari database kosong + migration - langsung import isinya.
+Pilih salah satu cara:
+
+CARA PALING RELIABLE - Import lewat SSH (disarankan, terutama kalau file .sql besar)
+1. Upload file "namafile.sql" ke server dulu pakai FileZilla/WinSCP, taruh di
+   ~/domains/kodevisual.com/kode_visual_app/ (atau folder mana saja yang gampang diingat).
+2. SSH ke server, jalankan:
+     mysql -u USERNAME_DATABASE -p NAMA_DATABASE < namafile.sql
+   (ganti USERNAME_DATABASE dan NAMA_DATABASE dengan punyamu dari Bagian 5 di atas - lengkap
+   dengan prefix u123456789_...). Nanti diminta masukkan password database, ketik lalu Enter.
+3. Kalau tidak ada error yang muncul, import berhasil. Cek isi tabel:
+     mysql -u USERNAME_DATABASE -p NAMA_DATABASE -e "SHOW TABLES;"
+4. Kalau pakai cara ini, LEWATI perintah "php artisan migrate --force" di Bagian 9 langkah 3
+   (karena tabel sudah ada dari hasil import, migrate ulang bisa bentrok/error "table already
+   exists"). Cukup jalankan "php artisan migrate:status" untuk cek migration sudah tercatat
+   sinkron atau belum.
+
+CARA VIA PHPMYADMIN (lebih gampang tapi ada batas ukuran upload file)
+1. Di hPanel, masuk ke menu "Databases" > "phpMyAdmin", klik database kamu.
+2. Klik tab "Import", pilih file "namafile.sql" dari laptop, klik "Go".
+3. Kalau muncul error ukuran file terlalu besar ("File exceeds the maximum size"), pakai
+   CARA SSH di atas saja - lebih reliable untuk file besar.
+
+
+CATATAN - KONEKSI DATABASE PAKAI DBEAVER
+Secara default Hostinger MEMBLOKIR koneksi dari luar server (supaya database tidak bisa
+diakses sembarang orang dari internet). Supaya DBeaver di laptop kamu bisa connect, harus
+di-whitelist dulu:
+
+1. Cek IP publik laptop kamu dulu - buka https://ifconfig.me atau https://whatismyip.com,
+   catat angka IP-nya.
+2. Di hPanel, masuk ke menu "Databases" > "Remote MySQL".
+3. Masukkan IP publik kamu di kolom IP (IPv4), klik "Create".
+   (Ada opsi "Any Host" untuk mengizinkan semua IP - JANGAN pakai ini, tidak aman karena
+   database jadi bisa dicoba diakses siapa saja dari internet.)
+4. Di halaman yang sama, catat "MySQL Hostname" yang ditampilkan di bagian atas (BUKAN
+   "localhost" - beda dengan yang dipakai di file .env Bagian 8. Biasanya formatnya seperti
+   "sql123.hostinger.com" atau berupa IP server).
+5. Buka DBeaver di laptop, klik "New Database Connection" > pilih "MySQL".
+6. Isi:
+     Server Host: (MySQL Hostname dari langkah 4 - bukan localhost)
+     Port:        3306
+     Database:    (nama database dari Bagian 5, dengan prefix)
+     Username:    (username database dari Bagian 5, dengan prefix)
+     Password:    (password database dari Bagian 5)
+7. Klik "Test Connection" - kalau DBeaver minta download driver MySQL, izinkan (klik
+   "Download"). Kalau berhasil, klik "Finish".
+8. Kalau IP publik laptop kamu berubah (misal ganti WiFi/provider internet), koneksi DBeaver
+   akan gagal lagi - ulangi langkah 1-3 dengan IP yang baru.
+
+Catatan: untuk IMPORT file .sql besar, tetap lebih disarankan pakai CARA SSH di atas (lebih
+cepat & tidak tergantung koneksi internet kamu ke server). DBeaver lebih cocok dipakai untuk
+mengecek/mengelola data sehari-hari setelah database sudah terisi.
+
+
+BAGIAN 6 - UPLOAD PROJECT KE SERVER
+--------------------------------------
+CATATAN STRUKTUR FOLDER HOSTINGER: akun Hostinger yang support banyak domain per akun tidak
+punya "public_html" langsung di home directory. Struktur yang benar biasanya:
+     ~/domains/kodevisual.com/public_html
+     ~/domains/kodevisual.com/DO_NOT_UPLOAD_HERE   (folder bawaan, biarkan saja, jangan
+                                                         diisi apapun)
+Cek dulu struktur punyamu lewat SSH: `ls ~/domains/` lalu `ls ~/domains/kodevisual.com/`.
+Semua path "~/kode_visual_app" dan "~/public_html" di panduan ini maksudnya adalah
+"~/domains/kodevisual.com/kode_visual_app" dan "~/domains/kodevisual.com/public_html"
+- sesuaikan dengan punyamu.
+
+Ada 2 cara, pilih salah satu (CARA A direkomendasikan):
+
+CARA A - Pakai Git manual lewat SSH
+1. Pastikan project sudah di-push ke GitHub/GitLab (private repo).
+2. Di server (lewat SSH), masuk ke folder domain kamu (SEJAJAR dengan public_html, BUKAN ke
+   dalam home langsung):
+     cd ~/domains/kodevisual.com
+3. Clone project (kalau private repo, siapkan Personal Access Token dari GitHub):
+     git clone https://github.com/username/nama-repo.git kode_visual_app
+4. Struktur foldernya ada di ~/domains/kodevisual.com/kode_visual_app, sejajar dengan
+   folder public_html (bukan di dalamnya) - ini benar dan aman, karena isi project (termasuk
+   .env) tidak berada di document root yang bisa diakses browser.
+
+CARA B - Upload manual pakai FileZilla/WinSCP
+1. Zip semua file project di laptop (kecuali folder vendor/ dan node_modules/, tidak perlu ikut).
+2. Buka FileZilla, connect pakai SFTP:
+     Host: kodevisual.com
+     Username: (username SSH, dari Bagian 3)
+     Password: (password SSH, dari Bagian 3)
+     Port: (port SSH, dari Bagian 3 - misal 65002)
+3. Navigasi ke folder domains/kodevisual.com/, upload file zip di situ (SEJAJAR dengan
+   public_html), lalu extract lewat hPanel File Manager (klik kanan file zip > Extract), atau
+   lewat SSH: unzip nama-file.zip
+
+CATATAN: Hostinger juga punya fitur "Advanced > Git" di hPanel untuk auto-deploy dari GitHub
+via webhook (setiap push otomatis ke-pull ke server). TAPI fitur ini HANYA menarik file dari
+repo, TIDAK menjalankan composer install / npm build / migration secara otomatis. Untuk
+project ini, lebih aman pakai git clone/pull manual lewat SSH (CARA A) supaya kamu tetap
+kontrol kapan composer install & migration dijalankan. Fitur auto-deploy bisa dipertimbangkan
+belakangan kalau proses deploy sudah lancar & stabil.
+
+
+BAGIAN 7 - ATUR DOCUMENT ROOT (BAGIAN PALING SERING BIKIN BINGUNG)
+---------------------------------------------------------------------
+Laravel punya folder "public/" yang HARUS jadi root domain (bukan seluruh folder project).
+Kalau salah setting ini, orang lain bisa akses file .env kamu langsung dari browser - bahaya.
+
+Paket shared hosting Hostinger UMUMNYA TIDAK mengizinkan ubah document root domain utama
+langsung ke subfolder custom (beda dengan cPanel di Webnesia). Jadi pakai cara berikut:
+
+Domain project ini: kodevisual.com. Struktur di server:
+     ~/domains/kodevisual.com/kode_visual_app   (hasil git clone di Bagian 6)
+     ~/domains/kodevisual.com/public_html       (document root, ini yang diakses browser)
+
+1. Pindahkan SEMUA ISI folder "kode_visual_app/public/" ke dalam folder "public_html".
+   Lewat SSH, jalankan persis ini:
+     cp -a ~/domains/kodevisual.com/kode_visual_app/public/. ~/domains/kodevisual.com/public_html/
+2. Edit file public_html/index.php:
+     nano ~/domains/kodevisual.com/public_html/index.php
+   Cari baris:
+     require __DIR__.'/../vendor/autoload.php';
+     $app = require_once __DIR__.'/../bootstrap/app.php';
+   Ubah jadi (menunjuk ke folder project asli, karena public_html sekarang sejajar dengan
+   kode_visual_app, bukan di dalamnya):
+     require __DIR__.'/../kode_visual_app/vendor/autoload.php';
+     $app = require_once __DIR__.'/../kode_visual_app/bootstrap/app.php';
+   Simpan: Ctrl+O lalu Enter, keluar dengan Ctrl+X.
+3. Test dulu: buka https://kodevisual.com di browser. Wajar kalau masih error/blank di titik
+   ini karena .env, vendor/, storage link, dsb belum di-setup (lanjut ke Bagian 8-11).
+4. Kalau nanti ada domain addon/subdomain lain, saat menambah lewat hPanel > "Domains" >
+   "Addon Domain", biasanya BISA pilih folder document root sendiri saat pembuatan awal -
+   di situ bisa langsung diarahkan ke folder "public" project tanpa trik di atas.
+
+
+BAGIAN 8 - SETUP FILE .env
+-----------------------------
+1. Lewat SSH, masuk ke folder project:
+     cd ~/domains/kodevisual.com/kode_visual_app
+2. Copy file contoh env:
+     cp .env.example .env
+3. Edit file .env (bisa pakai nano lewat SSH, atau edit lewat hPanel File Manager):
+     nano .env
+4. Isi/ubah bagian berikut:
+     APP_ENV=production
+     APP_DEBUG=false
+     APP_URL=https://kodevisual.com
+
+     DB_CONNECTION=mysql
+     DB_HOST=localhost
+     DB_PORT=3306
+     DB_DATABASE=u123456789_kodevisual     (dari Bagian 5)
+     DB_USERNAME=u123456789_dbuser         (dari Bagian 5)
+     DB_PASSWORD=password_yang_kamu_buat   (dari Bagian 5)
+5. Simpan (di nano: Ctrl+O lalu Enter, keluar dengan Ctrl+X).
+
+
+BAGIAN 9 - INSTALL DEPENDENCY & SETUP LARAVEL
+-------------------------------------------------
+Masih di SSH, folder project (~/domains/kodevisual.com/kode_visual_app). Ingat pakai
+`composer2` (lihat Bagian 4) kalau itu perintah composer yang benar di server kamu.
+
+1. Install dependency PHP (mode production, tanpa paket development):
+     composer2 install --optimize-autoloader --no-dev
+2. Generate APP_KEY (kunci enkripsi Laravel):
+     php artisan key:generate
+3. Jalankan migration untuk membuat semua tabel di database:
+     php artisan migrate --force
+4. Buat symbolic link untuk folder storage (supaya file upload/gambar bisa diakses publik).
+   PENTING: karena document root sudah dipindah ke public_html (Bagian 7), symlink default
+   `php artisan storage:link` akan mengarah ke folder "public/storage" di dalam project -
+   itu TIDAK akan otomatis muncul di public_html. Buat symlink manual ke public_html:
+     rm -f public/storage
+     ln -s ~/domains/kodevisual.com/kode_visual_app/storage/app/public ~/domains/kodevisual.com/public_html/storage
+5. Cache config untuk performa lebih baik di production:
+     php artisan config:cache
+     php artisan route:cache
+     php artisan view:cache
+
+
+BAGIAN 10 - BUILD & UPLOAD ASSET FRONTEND (CSS/JS)
+------------------------------------------------------
+Shared hosting kadang tidak stabil untuk build asset langsung di server, jadi lebih aman
+build di laptop dulu:
+
+1. Di LAPTOP kamu (bukan server), di folder project:
+     npm install
+     npm run build
+2. Ini akan menghasilkan folder "public/build" berisi file CSS/JS hasil compile.
+3. Upload folder "build" tersebut ke server, ke DUA lokasi (karena document root sudah
+   dipindah ke public_html di Bagian 7):
+     ~/domains/kodevisual.com/kode_visual_app/public/build   (folder asli project)
+     ~/domains/kodevisual.com/public_html/build   (WAJIB - ini yang diakses browser)
+   Cara upload: FileZilla/WinSCP, atau kalau pakai Git bisa commit & push lalu git pull di
+   ~/domains/kodevisual.com/kode_visual_app, lalu copy manual ke public_html:
+     cp -r ~/domains/kodevisual.com/kode_visual_app/public/build ~/domains/kodevisual.com/public_html/
+
+
+BAGIAN 11 - SET PERMISSION FOLDER
+------------------------------------
+Laravel butuh folder storage dan bootstrap/cache bisa ditulis oleh aplikasi:
+
+     chmod -R 775 ~/domains/kodevisual.com/kode_visual_app/storage ~/domains/kodevisual.com/kode_visual_app/bootstrap/cache
+
+(Kalau masih ada error permission setelah ini, coba chmod -R 755 dulu, atau tanya support
+Hostinger cara set ownership yang benar untuk shared hosting mereka.)
+
+
+BAGIAN 12 - AKTIFKAN SSL (HTTPS)
+------------------------------------
+1. Hostinger biasanya OTOMATIS mengaktifkan SSL gratis (Let's Encrypt) untuk domain begitu
+   domain terhubung ke hosting - cek dulu apakah https://kodevisual.com sudah jalan.
+2. Kalau belum aktif, di hPanel masuk ke menu "Security" > "SSL", pilih domain kamu,
+   klik "Install"/"Setup" untuk certificate gratisnya.
+3. Tunggu beberapa menit sampai sertifikat aktif.
+4. Setelah aktif, pastikan APP_URL di file .env pakai https:// (sudah dilakukan di Bagian 8).
+5. Test buka https://kodevisual.com - pastikan ada ikon gembok di browser.
+
+
+BAGIAN 13 - SETUP CRON JOB (UNTUK SCHEDULED TASK LARAVEL)
+---------------------------------------------------------------
+Project ini punya fitur recurring activity yang butuh scheduler Laravel jalan tiap menit.
+
+1. Di hPanel, masuk ke menu "Advanced" > "Cron Jobs".
+2. Tambah cron job baru:
+   - Pilih interval "Every Minute" (atau custom "* * * * *")
+   - Command:
+       cd /home/u888968279/domains/kodevisual.com/kode_visual_app && php artisan schedule:run >> /dev/null 2>&1
+     (path di atas sudah sesuai username server kamu u888968279 - kalau ragu, cek ulang
+     lewat SSH dengan command "pwd" saat berada di folder project)
+3. Save.
+
+
+BAGIAN 14 - TES AKHIR
+------------------------
+1. Buka https://kodevisual.com di browser, pastikan halaman login muncul normal.
+2. Coba login, cek beberapa halaman (dashboard, travel planner, money management).
+3. Cek tampilan CSS/JS - kalau berantakan, kemungkinan folder "build" belum sinkron antara
+   kode_visual_app/public/build dan public_html/build (lihat Bagian 10).
+4. Cek error log kalau ada masalah, lewat SSH:
+     tail -f ~/domains/kodevisual.com/kode_visual_app/storage/logs/laravel.log
+5. Kalau semua normal, hosting siap dipakai sebagai backend untuk mobile app nanti.
+
+
+BAGIAN 15 - CATATAN UNTUK NANTI (UPDATE KODE & API MOBILE)
+-------------------------------------------------------------
+- Karena domain sudah publik & sudah ada SSL, mobile app bisa langsung connect ke
+  https://kodevisual.com/api/v1/... dari mana saja (tidak perlu tunnel/hotspot lagi).
+- Update kode project nanti (fitur baru, bug fix), cara paling gampang lewat SSH:
+    cd ~/domains/kodevisual.com/kode_visual_app
+    git pull
+    composer2 install --optimize-autoloader --no-dev   (kalau ada dependency baru)
+    php artisan migrate --force                        (kalau ada migration baru)
+    php artisan config:cache
+  Kalau ada perubahan asset CSS/JS, ulangi Bagian 10 (build di laptop, upload/copy ulang ke
+  public_html/build).
+- Simpan file .env server terpisah dari git (jangan pernah di-commit ke repo).
+- Fitur "Advanced > Git" auto-deploy di hPanel bisa dipertimbangkan belakangan untuk
+  otomatisasi git pull saat push ke GitHub, tapi tetap perlu langkah manual composer/migrate/
+  cache setelahnya (lihat catatan di Bagian 6).
+
+
+CHECKLIST CEPAT (centang manual saat sudah selesai)
+-------------------------------------------------------
+[ ] Domain terhubung ke hosting Hostinger (cek di hPanel > Domains)
+[ ] PHP versi 8.1+ di-set lewat Advanced > PHP Configuration
+[ ] Ekstensi PHP yang dibutuhkan sudah aktif
+[ ] SSH Access aktif (Advanced > SSH Access) dan bisa connect
+[ ] Sudah pastikan pakai `composer2` (bukan `composer` versi 1)
+[ ] Database MySQL + user sudah dibuat, kredensial dicatat
+[ ] Project sudah ada di server (git clone atau upload manual)
+[ ] Isi folder public/ sudah dipindah ke public_html + path index.php sudah disesuaikan
+[ ] File .env sudah diisi lengkap dan benar
+[ ] composer2 install --no-dev sudah jalan tanpa error
+[ ] php artisan key:generate sudah dijalankan
+[ ] php artisan migrate --force sudah jalan, tabel sudah kebentuk
+[ ] Symlink storage manual ke public_html/storage sudah dibuat
+[ ] Asset frontend (folder build) sudah ter-upload ke public_html/build
+[ ] Permission storage & bootstrap/cache sudah benar
+[ ] SSL aktif, domain bisa diakses lewat https://
+[ ] Cron job schedule:run sudah didaftarkan
+[ ] Sudah login & test beberapa halaman, tidak ada error, CSS/JS tampil normal

@@ -3,14 +3,21 @@
 namespace App\Http\Controllers\MoneyManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\FinanceCategory;
-use App\Models\FinanceInvestment;
-use App\Models\FinanceSetting;
+use App\Services\FinanceCategory\FinanceCategoryService;
+use App\Services\FinanceInvestment\FinanceInvestmentService;
+use App\Services\FinanceSetting\FinanceSettingService;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class MasterDataController extends Controller
 {
+    public function __construct(
+        private FinanceCategoryService $financeCategoryService,
+        private FinanceInvestmentService $financeInvestmentService,
+        private FinanceSettingService $financeSettingService,
+    ) {
+    }
+
     // =========================================================================
     // EXPENSES
     // =========================================================================
@@ -21,7 +28,7 @@ class MasterDataController extends Controller
 
     public function expensesDatatable()
     {
-        $data = FinanceCategory::where('type', 'expense');
+        $data = $this->financeCategoryService->query('expense');
         return Datatables::of($data)
             ->addIndexColumn()
             ->addColumn('action', function($row){
@@ -46,7 +53,7 @@ class MasterDataController extends Controller
 
     public function incomeDatatable()
     {
-        $data = FinanceCategory::where('type', 'income');
+        $data = $this->financeCategoryService->query('income');
         return Datatables::of($data)
             ->addIndexColumn()
             ->addColumn('action', function($row){
@@ -71,7 +78,7 @@ class MasterDataController extends Controller
 
     public function investmentsDatatable()
     {
-        $data = FinanceInvestment::query();
+        $data = $this->financeInvestmentService->query();
         return Datatables::of($data)
             ->addIndexColumn()
             ->addColumn('name', function($row) {
@@ -99,69 +106,67 @@ class MasterDataController extends Controller
     // =========================================================================
     public function storeCategory(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:income,expense',
             'description' => 'nullable|string',
         ]);
 
-        FinanceCategory::create($request->all());
+        $this->financeCategoryService->create($validated);
 
         return response()->json(['success' => 'Kategori berhasil disimpan']);
     }
 
     public function updateCategory(Request $request, $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:income,expense',
             'description' => 'nullable|string',
         ]);
 
-        $category = FinanceCategory::findOrFail($id);
-        $category->update($request->all());
+        $this->financeCategoryService->update($id, $validated);
 
         return response()->json(['success' => 'Kategori berhasil diperbarui']);
     }
 
     public function destroyCategory($id)
     {
-        FinanceCategory::findOrFail($id)->delete();
+        $this->financeCategoryService->delete($id);
         return response()->json(['success' => 'Kategori berhasil dihapus']);
     }
 
     public function storeInvestment(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
             'type' => 'required|in:crypto,stock,other',
             'description' => 'nullable|string',
         ]);
 
-        FinanceInvestment::create($request->all());
+        $this->financeInvestmentService->create($validated);
 
         return response()->json(['success' => 'Data investasi berhasil disimpan']);
     }
 
     public function updateInvestment(Request $request, $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
             'type' => 'required|in:crypto,stock,other',
             'description' => 'nullable|string',
         ]);
 
-        $investment = FinanceInvestment::findOrFail($id);
-        $investment->update($request->all());
+        $this->financeInvestmentService->update($id, $validated);
 
         return response()->json(['success' => 'Data investasi berhasil diperbarui']);
     }
 
     public function destroyInvestment($id)
     {
-        FinanceInvestment::findOrFail($id)->delete();
+        $this->financeInvestmentService->delete($id);
         return response()->json(['success' => 'Data investasi berhasil dihapus']);
     }
 
@@ -170,19 +175,13 @@ class MasterDataController extends Controller
     // =========================================================================
     public function settingsIndex()
     {
-        $settings = FinanceSetting::where('user_id', auth()->id())->get()->pluck('value', 'key');
+        $settings = $this->financeSettingService->allForUser(auth()->id());
         return view('pages.money-management.master-data.settings', compact('settings'));
     }
 
     public function storeSetting(Request $request)
     {
-        $userId = auth()->id();
-        foreach ($request->except('_token') as $key => $value) {
-            FinanceSetting::updateOrCreate(
-                ['user_id' => $userId, 'key' => $key],
-                ['value' => $value]
-            );
-        }
+        $this->financeSettingService->saveMany(auth()->id(), $request->except('_token'));
 
         return response()->json(['success' => 'Pengaturan berhasil disimpan']);
     }

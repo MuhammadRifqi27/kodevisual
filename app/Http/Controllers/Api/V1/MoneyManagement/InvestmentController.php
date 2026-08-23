@@ -3,48 +3,51 @@
 namespace App\Http\Controllers\Api\V1\MoneyManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\FinanceInvestment;
+use App\Services\FinanceInvestment\FinanceInvestmentService;
 use Illuminate\Http\Request;
 
 class InvestmentController extends Controller
 {
+    public function __construct(private FinanceInvestmentService $financeInvestmentService)
+    {
+    }
+
     public function index()
     {
-        return response()->json(FinanceInvestment::orderBy('name')->get());
+        return response()->json($this->financeInvestmentService->query()->get());
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
             'type' => 'required|in:crypto,stock,other',
             'description' => 'nullable|string',
         ]);
 
-        $investment = FinanceInvestment::create($request->only('name', 'code', 'type', 'description'));
+        $investment = $this->financeInvestmentService->create($validated);
 
         return response()->json($investment, 201);
     }
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
             'type' => 'required|in:crypto,stock,other',
             'description' => 'nullable|string',
         ]);
 
-        $investment = FinanceInvestment::findOrFail($id);
-        $investment->update($request->only('name', 'code', 'type', 'description'));
+        $investment = $this->financeInvestmentService->update($id, $validated);
 
         return response()->json($investment);
     }
 
     public function destroy($id)
     {
-        FinanceInvestment::findOrFail($id)->delete();
+        $this->financeInvestmentService->delete($id);
 
         return response()->json(['success' => 'Data investasi berhasil dihapus']);
     }

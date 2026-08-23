@@ -1,8 +1,16 @@
 # Changelog Stagging Semantic Version
 
-## [1.0.0] - 2026-08-17
+## [1.0.1] - 2026-08-23
 
-Pre-launch baseline. App has not gone live yet, so all work to date is consolidated into a single initial release instead of many incremental versions.
+### Changed
+- Refactored the entire Money Management module (web + API, 25 controllers) to a Repository + Service architecture — no intentional user-facing behavior change beyond the fixes below. See `docs/repository-service-pattern.md` and `docs/money-management-refactor.md`.
+
+### Fixed
+- Recurring transactions generated from the web Recurring page now store a positive `amount` (sign carried by `type`), matching the API and manual transactions — previously expense amounts were double-negated when read back into account balances.
+- Mobile API dashboard's investment/liquid-cash split now also recognizes investment id `11` (AJAIB) as an investment account, matching the web dashboard (previously only the web side had this).
+- Portfolio ledger entries created/edited from the web Portfolio page are now restricted to `deposit|withdrawal|profit|loss`, matching the API's validation (previously any string was accepted).
+
+## [1.0.0] - 2026-08-22
 
 ### Added
 

@@ -3,29 +3,32 @@
 namespace App\Http\Controllers\MoneyManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\FinanceRecurringTransaction;
-use App\Models\FinanceCategory;
-use App\Models\FinancePortfolio;
-use App\Models\FinanceTransaction;
+use App\Services\FinanceCategory\FinanceCategoryService;
+use App\Services\FinancePortfolio\FinancePortfolioService;
+use App\Services\FinanceRecurringTransaction\FinanceRecurringTransactionService;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
-use Carbon\Carbon;
 
 class RecurringTransactionController extends Controller
 {
+    public function __construct(
+        private FinanceRecurringTransactionService $financeRecurringTransactionService,
+        private FinanceCategoryService $financeCategoryService,
+        private FinancePortfolioService $financePortfolioService,
+    ) {
+    }
+
     public function index()
     {
-        $this->processPending();
-        $categories = FinanceCategory::orderBy('name')->get();
-        $accounts = FinancePortfolio::where('user_id', auth()->id())->get();
+        $this->financeRecurringTransactionService->processDue(auth()->id());
+        $categories = $this->financeCategoryService->query()->get();
+        $accounts = $this->financePortfolioService->listForUser(auth()->id());
         return view('pages.money-management.transactions.recurring', compact('categories', 'accounts'));
     }
 
     public function datatable()
     {
-        $data = FinanceRecurringTransaction::where('user_id', auth()->id())
-            ->with(['category', 'portfolio'])
-            ->orderBy('next_date', 'asc');
+        $data = $this->financeRecurringTransactionService->listQuery(auth()->id());
 
         return DataTables::of($data)
             ->addIndexColumn()
@@ -51,7 +54,7 @@ class RecurringTransactionController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:income,expense',
             'finance_category_id' => 'required|exists:finance_categories,id',
@@ -59,59 +62,18 @@ class RecurringTransactionController extends Controller
             'amount' => 'required|numeric|min:0.01',
             'frequency' => 'required|in:daily,weekly,monthly,yearly',
             'start_date' => 'required|date',
+            'description' => 'nullable|string',
         ]);
 
-        FinancePortfolio::where('user_id', auth()->id())->findOrFail($request->finance_investment_id);
-
-        $data = $request->all();
-        $data['user_id'] = auth()->id();
-        $data['next_date'] = $request->start_date; // Initially next_date is start_date
-
-        FinanceRecurringTransaction::create($data);
+        $this->financeRecurringTransactionService->createRecurring(auth()->id(), $validated);
 
         return response()->json(['success' => 'Recurring transaction berhasil dibuat']);
     }
 
     public function destroy($id)
     {
-        $recurring = FinanceRecurringTransaction::where('user_id', auth()->id())->findOrFail($id);
-        $recurring->delete();
+        $this->financeRecurringTransactionService->deleteRecurring(auth()->id(), $id);
 
         return response()->json(['success' => 'Recurring transaction berhasil dihapus']);
-    }
-
-    public function processPending()
-    {
-        $userId = auth()->id();
-        $today = Carbon::today();
-        
-        $pendings = FinanceRecurringTransaction::where('user_id', $userId)
-            ->where('is_active', true)
-            ->where('next_date', '<=', $today)
-            ->get();
-
-        foreach ($pendings as $recurring) {
-            // Create the real transaction
-            FinanceTransaction::create([
-                'user_id' => $userId,
-                'date' => $recurring->next_date,
-                'type' => $recurring->type,
-                'finance_category_id' => $recurring->finance_category_id,
-                'finance_investment_id' => $recurring->finance_investment_id,
-                'amount' => $recurring->type == 'expense' ? -$recurring->amount : $recurring->amount,
-                'description' => '[Auto] ' . $recurring->name . ($recurring->description ? ': ' . $recurring->description : ''),
-            ]);
-
-            // Update next_date based on frequency
-            $next = Carbon::parse($recurring->next_date);
-            switch ($recurring->frequency) {
-                case 'daily': $next->addDay(); break;
-                case 'weekly': $next->addWeek(); break;
-                case 'monthly': $next->addMonth(); break;
-                case 'yearly': $next->addYear(); break;
-            }
-            
-            $recurring->update(['next_date' => $next]);
-        }
     }
 }

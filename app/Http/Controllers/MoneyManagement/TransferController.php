@@ -3,30 +3,29 @@
 namespace App\Http\Controllers\MoneyManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\FinancePortfolio;
-use App\Models\FinanceTransaction;
-use App\Models\FinanceCategory;
+use App\Services\FinancePortfolio\FinancePortfolioService;
+use App\Services\FinanceTransfer\FinanceTransferService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class TransferController extends Controller
 {
+    public function __construct(
+        private FinanceTransferService $financeTransferService,
+        private FinancePortfolioService $financePortfolioService,
+    ) {
+    }
+
     public function index()
     {
-        $accounts = FinancePortfolio::with('investment')->where('user_id', auth()->id())->get();
+        $accounts = $this->financePortfolioService->listForUser(auth()->id());
         $account_investment = $accounts[0]->investment->name;
         return view('pages.money-management.transfers.index', compact('accounts', 'account_investment'));
     }
 
     public function datatable()
     {
-        $data = FinanceTransaction::where('user_id', auth()->id())
-            ->where('type', 'transfer')
-            ->where('amount', '<', 0) // Only show the sender side to avoid duplicate lines
-            ->with(['portfolio', 'destinationPortfolio'])
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc');
+        $data = $this->financeTransferService->listQuery(auth()->id());
 
         return DataTables::of($data)
             ->addIndexColumn()
@@ -63,7 +62,7 @@ class TransferController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'date' => 'required|date',
             'from_account_id' => 'required|exists:finance_portfolios,id',
             'to_account_id' => 'required|exists:finance_portfolios,id|different:from_account_id',
@@ -73,59 +72,17 @@ class TransferController extends Controller
             'lot' => 'nullable|integer|min:0',
         ]);
 
-        $userId = auth()->id();
-        $lot = $request->filled('lot') ? (int) $request->lot : null;
-
-        // Find or Create an internal "Transfer" category to keep schema consistent
-        $category = FinanceCategory::firstOrCreate(
-            ['name' => 'Internal Transfer', 'type' => 'expense'],
-            ['description' => 'System created category for internal transfers']
-        );
-
-        $fromAccount = FinancePortfolio::with('investment')->where('user_id', $userId)->findOrFail($request->from_account_id);
-        $toAccount = FinancePortfolio::with('investment')->where('user_id', $userId)->findOrFail($request->to_account_id);
-
-        $transactionId = DB::transaction(function() use ($request, $userId, $category, $fromAccount, $toAccount, $lot) {
-            // 1. Transaction FROM (Outbound)
-            $from = FinanceTransaction::create([
-                'user_id' => $userId,
-                'date' => $request->date,
-                'type' => 'transfer',
-                'finance_category_id' => $category->id,
-                'finance_investment_id' => $request->from_account_id,
-                'to_finance_investment_id' => $request->to_account_id,
-                'asset' => $request->asset,
-                'lot' => $lot !== null ? -$lot : null,
-                'amount' => -$request->amount, // Negative
-                'description' => $request->description ?? 'Transfer to ' . $toAccount->account_name . ' - ' . $toAccount->investment->name,
-            ]);
-
-            // 2. Transaction TO (Inbound)
-            FinanceTransaction::create([
-                'user_id' => $userId,
-                'date' => $request->date,
-                'type' => 'transfer',
-                'finance_category_id' => $category->id,
-                'finance_investment_id' => $request->to_account_id,
-                'to_finance_investment_id' => $request->from_account_id,
-                'asset' => $request->asset,
-                'lot' => $lot,
-                'amount' => $request->amount, // Positive
-                'description' => $request->description ?? 'Transfer from ' . $fromAccount->account_name . ' - ' . $fromAccount->investment->name,
-            ]);
-
-            return $from->id;
-        });
+        $outbound = $this->financeTransferService->transfer(auth()->id(), $validated);
 
         return response()->json([
             'success' => 'Transfer berhasil dicatat',
-            'transaction_id' => $transactionId
+            'transaction_id' => $outbound->id,
         ]);
     }
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'date' => 'required|date',
             'from_account_id' => 'required|exists:finance_portfolios,id',
             'to_account_id' => 'required|exists:finance_portfolios,id|different:from_account_id',
@@ -135,77 +92,21 @@ class TransferController extends Controller
             'lot' => 'nullable|integer|min:0',
         ]);
 
-        $userId = auth()->id();
-        $lot = $request->filled('lot') ? (int) $request->lot : null;
-
-        // Validate accounts belong to this user (parity with store())
-        FinancePortfolio::where('user_id', $userId)->findOrFail($request->from_account_id);
-        FinancePortfolio::where('user_id', $userId)->findOrFail($request->to_account_id);
-
-        // The datatable only ever shows the outbound (negative-amount) leg, so $id always refers to it
-        $outbound = FinanceTransaction::where('user_id', $userId)->where('type', 'transfer')->findOrFail($id);
-
-        DB::transaction(function() use ($request, $userId, $outbound, $lot) {
-            // Locate the inbound counterpart BEFORE mutating $outbound (same predicate as destroy())
-            $inbound = FinanceTransaction::where('user_id', $userId)
-                ->where('date', $outbound->date)
-                ->where('type', 'transfer')
-                ->where('finance_investment_id', $outbound->to_finance_investment_id)
-                ->where('to_finance_investment_id', $outbound->finance_investment_id)
-                ->where('amount', -$outbound->amount)
-                ->first();
-
-            $outbound->update([
-                'date' => $request->date,
-                'finance_investment_id' => $request->from_account_id,
-                'to_finance_investment_id' => $request->to_account_id,
-                'asset' => $request->asset,
-                'lot' => $lot !== null ? -$lot : null,
-                'amount' => -$request->amount,
-                'description' => $request->description,
-            ]);
-
-            if ($inbound) {
-                $inbound->update([
-                    'date' => $request->date,
-                    'finance_investment_id' => $request->to_account_id,
-                    'to_finance_investment_id' => $request->from_account_id,
-                    'asset' => $request->asset,
-                    'lot' => $lot,
-                    'amount' => $request->amount,
-                    'description' => $request->description,
-                ]);
-            }
-        });
+        $this->financeTransferService->updateTransfer(auth()->id(), $id, $validated);
 
         return response()->json(['success' => 'Transfer berhasil diperbarui']);
     }
 
     public function destroy($id)
     {
-        $transaction = FinanceTransaction::where('user_id', auth()->id())->findOrFail($id);
-        
-        // When deleting a transfer, we must find its pair to keep balances correct
-        DB::transaction(function() use ($transaction) {
-            // Find the counterpart: same date, same reversed accounts, same absolute amount
-            FinanceTransaction::where('user_id', $transaction->user_id)
-                ->where('date', $transaction->date)
-                ->where('type', 'transfer')
-                ->where('finance_investment_id', $transaction->to_finance_investment_id)
-                ->where('to_finance_investment_id', $transaction->finance_investment_id)
-                ->where('amount', -$transaction->amount)
-                ->delete();
-
-            $transaction->delete();
-        });
+        $this->financeTransferService->deleteTransfer(auth()->id(), $id);
 
         return response()->json(['success' => 'Transfer berhasil dihapus']);
     }
+
     public function showReceipt($id)
     {
-        $transaction = FinanceTransaction::where('user_id', auth()->id())
-            ->with(['portfolio', 'destinationPortfolio'])
-            ->findOrFail($id);
+        $transaction = $this->financeTransferService->findForReceipt(auth()->id(), $id);
 
         return view('pages.money-management.transfers.receipt', compact('transaction'));
     }

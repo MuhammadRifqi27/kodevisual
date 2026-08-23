@@ -2,27 +2,30 @@
 
 namespace App\Http\Controllers\MoneyManagement;
 
+use App\Exceptions\FinanceDomainException;
 use App\Http\Controllers\Controller;
-use App\Models\FinancePortfolio;
-use App\Models\FinanceInvestment;
-use App\Models\FinanceInvestmentTransaction;
-use App\Models\FinanceTransaction;
+use App\Services\FinanceInvestment\FinanceInvestmentService;
+use App\Services\FinancePortfolio\FinancePortfolioService;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class PortfolioController extends Controller
 {
+    public function __construct(
+        private FinancePortfolioService $financePortfolioService,
+        private FinanceInvestmentService $financeInvestmentService,
+    ) {
+    }
+
     public function index()
     {
-        $globalInvestments = FinanceInvestment::orderBy('name')->get();
+        $globalInvestments = $this->financeInvestmentService->query()->get();
         return view('pages.money-management.portfolio.index', compact('globalInvestments'));
     }
 
     public function datatable()
     {
-        $portfolios = FinancePortfolio::where('user_id', auth()->id())
-            ->with('investment')
-            ->get();
+        $portfolios = $this->financePortfolioService->listForUser(auth()->id());
 
         return DataTables::of($portfolios)
             ->addIndexColumn()
@@ -51,10 +54,7 @@ class PortfolioController extends Controller
 
     public function show($id)
     {
-        $portfolio = FinancePortfolio::where('user_id', auth()->id())
-            ->with(['investment'])
-            ->findOrFail($id);
-        
+        $portfolio = $this->financePortfolioService->assertOwned(auth()->id(), $id)->load('investment');
         $balance = $portfolio->balance;
 
         return view('pages.money-management.portfolio.show', compact('portfolio', 'balance'));
@@ -62,34 +62,14 @@ class PortfolioController extends Controller
 
     public function transactionDatatable($id)
     {
-        // Specific Investment Transactions
-        $invTrx = FinanceInvestmentTransaction::where('finance_investment_id', $id)
-            ->where('user_id', auth()->id())
-            ->get()
-            ->map(function($item) {
-                $item->source_type = 'investment';
-                return $item;
-            });
-
-        // General Transactions linked to this portfolio
-        $genTrx = FinanceTransaction::where('finance_investment_id', $id)
-            ->where('user_id', auth()->id())
-            ->with('category')
-            ->get()
-            ->map(function($item) {
-                $item->source_type = 'general';
-                $item->asset = null;
-                $item->lot = null;
-                $item->display_type = $item->type;
-                if ($item->type === 'transfer') {
-                    $item->display_amount = $item->amount; // Use signed amount for transfer
-                } else {
-                    $item->display_amount = $item->type === 'expense' ? -$item->amount : $item->amount;
+        $data = $this->financePortfolioService->activityFeed(auth()->id(), $id)
+            ->each(function ($item) {
+                if ($item->source_type === 'general') {
+                    $item->asset = null;
+                    $item->lot = null;
+                    $item->display_type = $item->type;
                 }
-                return $item;
             });
-
-        $data = $invTrx->concat($genTrx)->sortByDesc('date');
 
         return Datatables::of($data)
             ->addIndexColumn()
@@ -101,11 +81,11 @@ class PortfolioController extends Controller
                     $color = 'primary';
                     if($row->type == 'income') $color = 'success';
                     if($row->type == 'expense') $color = 'danger';
-                    
+
                     $cat = $row->category ? ' ('.$row->category->name.')' : '';
                     return '<span class="badge badge-light-'.$color.'">'.ucfirst($row->type).$cat.'</span>';
                 }
-                
+
                 if($row->type == 'deposit' || $row->type == 'profit') {
                     return '<span class="badge badge-light-success">'.ucfirst($row->type).'</span>';
                 }
@@ -147,7 +127,7 @@ class PortfolioController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'finance_investment_id' => 'required|exists:finance_investments,id',
             'account_name' => 'required|string|max:255',
             'account_number' => 'nullable|string|max:255',
@@ -155,18 +135,14 @@ class PortfolioController extends Controller
             'account_investment' => 'nullable|boolean',
         ]);
 
-        $data = $request->all();
-        $data['user_id'] = auth()->id();
-        $data['account_investment'] = $request->boolean('account_investment');
-
-        FinancePortfolio::create($data);
+        $this->financePortfolioService->createPortfolio(auth()->id(), $validated);
 
         return response()->json(['success' => 'Akun Portofolio berhasil ditambahkan']);
     }
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'finance_investment_id' => 'required|exists:finance_investments,id',
             'account_name' => 'required|string|max:255',
             'account_number' => 'nullable|string|max:255',
@@ -174,71 +150,61 @@ class PortfolioController extends Controller
             'account_investment' => 'nullable|boolean',
         ]);
 
-        $portfolio = FinancePortfolio::where('user_id', auth()->id())->findOrFail($id);
-
-        $data = $request->all();
-        $data['account_investment'] = $request->boolean('account_investment');
-
-        $portfolio->update($data);
+        $this->financePortfolioService->updatePortfolio(auth()->id(), $id, $validated);
 
         return response()->json(['success' => 'Akun Portofolio berhasil diperbarui']);
     }
 
     public function destroy($id)
     {
-        $portfolio = FinancePortfolio::where('user_id', auth()->id())->findOrFail($id);
-        
-        // Check if has transactions
-        if ($portfolio->generalTransactions()->exists() || $portfolio->transactions()->exists()) {
-            return response()->json(['error' => 'Tidak bisa menghapus akun yang sudah memiliki riwayat transaksi'], 400);
+        try {
+            $this->financePortfolioService->deletePortfolio(auth()->id(), $id);
+        } catch (FinanceDomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
         }
 
-        $portfolio->delete();
         return response()->json(['success' => 'Akun Portofolio berhasil dihapus']);
     }
 
     public function storeTransaction(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'finance_investment_id' => 'required|exists:finance_portfolios,id',
             'asset' => 'nullable|string|max:100',
             'lot' => 'nullable|integer|min:0',
             'date' => 'required|date',
-            'type' => 'required',
+            'type' => 'required|in:deposit,withdrawal,profit,loss',
             'amount' => 'required|numeric|min:0',
             'description' => 'nullable|string',
         ]);
 
-        $portfolio = FinancePortfolio::where('user_id', auth()->id())->findOrFail($request->finance_investment_id);
+        $portfolioId = $validated['finance_investment_id'];
+        unset($validated['finance_investment_id']);
 
-        $data = $request->all();
-        $data['user_id'] = auth()->id();
-
-        FinanceInvestmentTransaction::create($data);
+        $this->financePortfolioService->createLedgerEntry(auth()->id(), $portfolioId, $validated);
 
         return response()->json(['success' => 'Transaksi berhasil disimpan']);
     }
 
     public function updateTransaction(Request $request, $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'asset' => 'nullable|string|max:100',
             'lot' => 'nullable|integer|min:0',
             'date' => 'required|date',
-            'type' => 'required',
+            'type' => 'required|in:deposit,withdrawal,profit,loss',
             'amount' => 'required|numeric|min:0',
             'description' => 'nullable|string',
         ]);
 
-        $trx = FinanceInvestmentTransaction::where('user_id', auth()->id())->findOrFail($id);
-        $trx->update($request->all());
+        $this->financePortfolioService->updateLedgerEntry(auth()->id(), $id, $validated);
 
         return response()->json(['success' => 'Transaksi berhasil diperbarui']);
     }
 
     public function destroyTransaction($id)
     {
-        FinanceInvestmentTransaction::where('user_id', auth()->id())->findOrFail($id)->delete();
+        $this->financePortfolioService->deleteLedgerEntry(auth()->id(), $id);
         return response()->json(['success' => 'Transaksi berhasil dihapus']);
     }
 }

@@ -2,94 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\FinancePortfolio;
-use App\Models\FinanceInvestmentTransaction;
-use App\Models\FinanceTransaction;
+use App\Services\FinanceBtcTracking\FinanceBtcTrackingService;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class BtcTrackingController extends Controller
 {
+    public function __construct(private FinanceBtcTrackingService $financeBtcTrackingService)
+    {
+    }
+
     public function index()
     {
-        // Get all portfolios related to Crypto
-        $btcPortfolios = FinancePortfolio::where('user_id', auth()->id())
-            ->whereHas('investment', function($q) {
-                $q->where('type', 'crypto');
-            })
-            ->get();
-
-        $totalBtcValue = $btcPortfolios->sum('balance');
-        $portfolioIds = $btcPortfolios->pluck('id');
-
-        // Per-asset balance breakdown from investment transactions (deposit+profit - withdrawal-loss)...
-        $balances = FinanceInvestmentTransaction::where('user_id', auth()->id())
-            ->whereIn('finance_investment_id', $portfolioIds)
-            ->get()
-            ->groupBy(function($item) {
-                return $item->asset ?: 'Unspecified';
-            })
-            ->map(function($rows) {
-                return $rows->sum(function($row) {
-                    return in_array($row->type, ['deposit', 'profit']) ? $row->amount : -$row->amount;
-                });
-            });
-
-        // ...merged with asset-tagged Internal Transfer legs (amount is already signed per-account)
-        $transferBalances = FinanceTransaction::where('user_id', auth()->id())
-            ->where('type', 'transfer')
-            ->whereIn('finance_investment_id', $portfolioIds)
-            ->whereNotNull('asset')
-            ->get()
-            ->groupBy('asset')
-            ->map(function($rows) {
-                return $rows->sum('amount');
-            });
-
-        foreach ($transferBalances as $asset => $amount) {
-            $balances[$asset] = ($balances[$asset] ?? 0) + $amount;
-        }
-
-        $assetBalances = $balances->map(function($balance, $asset) {
-            return ['asset' => $asset, 'balance' => $balance];
-        })->values();
+        $overview = $this->financeBtcTrackingService->overview(auth()->id());
+        $btcPortfolios = $overview['portfolios'];
+        $totalBtcValue = $overview['totalValue'];
+        $assetBalances = $overview['assetBalances'];
 
         return view('pages.money-management.btc-tracking.index', compact('btcPortfolios', 'totalBtcValue', 'assetBalances'));
     }
 
     public function datatable()
     {
-        $userId = auth()->id();
-
-        // Get Crypto portfolio IDs
-        $btcPortfolioIds = FinancePortfolio::where('user_id', $userId)
-            ->whereHas('investment', function($q) {
-                $q->where('type', 'crypto');
-            })
-            ->pluck('id');
-
-        $invTrx = FinanceInvestmentTransaction::where('user_id', $userId)
-            ->whereIn('finance_investment_id', $btcPortfolioIds)
-            ->with('portfolio')
-            ->get()
-            ->map(function($item) {
-                $item->source_type = 'investment';
-                return $item;
-            });
-
-        $transferTrx = FinanceTransaction::where('user_id', $userId)
-            ->where('type', 'transfer')
-            ->whereIn('finance_investment_id', $btcPortfolioIds)
-            ->whereNotNull('asset')
-            ->with('portfolio')
-            ->get()
-            ->map(function($item) {
-                $item->source_type = 'transfer';
-                return $item;
-            });
-
-        $data = $invTrx->concat($transferTrx)->sortByDesc('date');
+        $data = $this->financeBtcTrackingService->activityFeed(auth()->id());
 
         return DataTables::of($data)
             ->addIndexColumn()
@@ -141,8 +76,8 @@ class BtcTrackingController extends Controller
 
     public function destroy($id)
     {
-        $transaction = FinanceInvestmentTransaction::where('user_id', auth()->id())->findOrFail($id);
-        $transaction->delete();
+        $this->financeBtcTrackingService->deleteLedgerEntry(auth()->id(), $id);
+
         return response()->json(['success' => 'Transaction removed from tracking']);
     }
 }

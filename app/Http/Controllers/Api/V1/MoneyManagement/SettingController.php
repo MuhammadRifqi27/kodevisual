@@ -3,16 +3,18 @@
 namespace App\Http\Controllers\Api\V1\MoneyManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\FinanceSetting;
+use App\Services\FinanceSetting\FinanceSettingService;
 use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
+    public function __construct(private FinanceSettingService $financeSettingService)
+    {
+    }
+
     public function index()
     {
-        return response()->json(
-            FinanceSetting::where('user_id', auth()->id())->get()->pluck('value', 'key')
-        );
+        return response()->json($this->financeSettingService->allForUser(auth()->id()));
     }
 
     /**
@@ -20,14 +22,7 @@ class SettingController extends Controller
      */
     public function store(Request $request)
     {
-        $userId = auth()->id();
-
-        foreach ($request->all() as $key => $value) {
-            FinanceSetting::updateOrCreate(
-                ['user_id' => $userId, 'key' => $key],
-                ['value' => $value]
-            );
-        }
+        $this->financeSettingService->saveMany(auth()->id(), $request->all());
 
         return response()->json(['success' => 'Pengaturan berhasil disimpan']);
     }

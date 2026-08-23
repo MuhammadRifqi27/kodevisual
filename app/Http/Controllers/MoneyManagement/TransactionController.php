@@ -3,52 +3,43 @@
 namespace App\Http\Controllers\MoneyManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\FinanceCategory;
-use App\Models\FinancePortfolio;
-use App\Models\FinanceTransaction;
+use App\Services\FinanceCategory\FinanceCategoryService;
+use App\Services\FinancePortfolio\FinancePortfolioService;
+use App\Services\FinanceTransaction\FinanceTransactionService;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class TransactionController extends Controller
 {
+    public function __construct(
+        private FinanceTransactionService $financeTransactionService,
+        private FinanceCategoryService $financeCategoryService,
+        private FinancePortfolioService $financePortfolioService,
+    ) {
+    }
+
     public function index()
     {
-        $investments = FinancePortfolio::where('user_id', auth()->id())->get();
-        // Fetch all categories for filter dropdown
-        $categories = FinanceCategory::orderBy('name', 'asc')->get();
+        $investments = $this->financePortfolioService->listForUser(auth()->id());
+        $categories = $this->financeCategoryService->query()->get();
         return view('pages.money-management.transactions.index', compact('investments', 'categories'));
     }
 
     public function datatable(Request $request)
     {
-        $data = FinanceTransaction::where('user_id', auth()->id())
-            ->whereIn('type', ['income', 'expense']) // Exclude transfers from main list
-            ->with(['category', 'portfolio']);
+        $data = $this->financeTransactionService->filteredQuery(auth()->id(), $request->only([
+            'type', 'category_id', 'start_date', 'end_date',
+        ]));
 
-        if ($request->has('type') && $request->type != 'all') {
-            $data->where('type', $request->type);
-        }
-
-        if ($request->has('category_id') && $request->category_id != 'all') {
-            $data->where('finance_category_id', $request->category_id);
-        }
-
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $data->whereBetween('date', [$request->start_date, $request->end_date]);
-        }
-
-        // Calculate totals based on the same query
-        $totalIncome = (clone $data)->where('type', 'income')->sum('amount');
-        $totalExpense = (clone $data)->where('type', 'expense')->sum('amount');
-        $netBalance = $totalIncome - $totalExpense;
+        $summary = $this->financeTransactionService->summaryFor($data);
 
         return Datatables::of($data)
             ->addIndexColumn()
             ->with([
-                'total_income' => 'Rp ' . number_format($totalIncome, 0, ',', '.'),
-                'total_expense' => 'Rp ' . number_format($totalExpense, 0, ',', '.'),
-                'net_balance' => 'Rp ' . number_format($netBalance, 0, ',', '.'),
-                'net_balance_raw' => $netBalance,
+                'total_income' => 'Rp ' . number_format($summary['total_income'], 0, ',', '.'),
+                'total_expense' => 'Rp ' . number_format($summary['total_expense'], 0, ',', '.'),
+                'net_balance' => 'Rp ' . number_format($summary['net_balance'], 0, ',', '.'),
+                'net_balance_raw' => $summary['net_balance'],
             ])
             ->editColumn('date', function($row) {
                 return date('d M Y', strtotime($row->date));
@@ -68,13 +59,13 @@ class TransactionController extends Controller
                 return '<span class="badge badge-light-primary">Transfer</span>';
             })
             ->addColumn('action', function($row){
-                $btn = '<button data-id="'.$row->id.'" 
-                        data-date="'.$row->date.'" 
-                        data-type="'.$row->type.'" 
-                        data-category="'.$row->finance_category_id.'" 
-                        data-investment="'.$row->finance_investment_id.'" 
-                        data-amount="'.$row->amount.'" 
-                        data-description="'.$row->description.'" 
+                $btn = '<button data-id="'.$row->id.'"
+                        data-date="'.$row->date.'"
+                        data-type="'.$row->type.'"
+                        data-category="'.$row->finance_category_id.'"
+                        data-investment="'.$row->finance_investment_id.'"
+                        data-amount="'.$row->amount.'"
+                        data-description="'.$row->description.'"
                         class="btn btn-icon btn-active-light-primary w-30px h-30px me-3 edit-transaction-btn">
                             <i class="ki-duotone ki-pencil fs-3"><span class="path1"></span><span class="path2"></span></i>
                         </button>';
@@ -89,14 +80,13 @@ class TransactionController extends Controller
 
     public function getCategories(Request $request)
     {
-        $type = $request->type;
-        $categories = FinanceCategory::where('type', $type)->get();
+        $categories = $this->financeCategoryService->query($request->type)->get();
         return response()->json($categories);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'date' => 'required|date',
             'type' => 'required|in:income,expense',
             'category_id' => 'required|exists:finance_categories,id',
@@ -105,26 +95,14 @@ class TransactionController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        if ($request->investment_id) {
-            FinancePortfolio::where('user_id', auth()->id())->findOrFail($request->investment_id);
-        }
-
-        FinanceTransaction::create([
-            'user_id' => auth()->id(),
-            'date' => $request->date,
-            'type' => $request->type,
-            'finance_category_id' => $request->category_id,
-            'finance_investment_id' => $request->investment_id,
-            'amount' => $request->amount,
-            'description' => $request->description,
-        ]);
+        $this->financeTransactionService->createTransaction(auth()->id(), $validated);
 
         return response()->json(['success' => 'Transaksi berhasil disimpan']);
     }
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'date' => 'required|date',
             'type' => 'required|in:income,expense',
             'category_id' => 'required|exists:finance_categories,id',
@@ -133,26 +111,14 @@ class TransactionController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        if ($request->investment_id) {
-            FinancePortfolio::where('user_id', auth()->id())->findOrFail($request->investment_id);
-        }
-
-        $transaction = FinanceTransaction::where('user_id', auth()->id())->findOrFail($id);
-        $transaction->update([
-            'date' => $request->date,
-            'type' => $request->type,
-            'finance_category_id' => $request->category_id,
-            'finance_investment_id' => $request->investment_id,
-            'amount' => $request->amount,
-            'description' => $request->description,
-        ]);
+        $this->financeTransactionService->updateTransaction(auth()->id(), $id, $validated);
 
         return response()->json(['success' => 'Transaksi berhasil diperbarui']);
     }
 
     public function destroy($id)
     {
-        FinanceTransaction::where('user_id', auth()->id())->findOrFail($id)->delete();
+        $this->financeTransactionService->deleteTransaction(auth()->id(), $id);
         return response()->json(['success' => 'Transaksi berhasil dihapus']);
     }
 }
